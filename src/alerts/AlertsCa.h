@@ -1,6 +1,10 @@
 #pragma once
-// Trust anchors for api.ukrainealarm.com ONLY (SPEC 85): the 4 GTS roots
-// (Cloudflare edge cert chains to GTS WE1 -> GTS Root R4).
+// Trust anchors for api.ukrainealarm.com ONLY (SPEC 85): the 4 GTS roots.
+// Cloudflare holds both an ECDSA chain (leaf <- WE1 <- Root R4) and an RSA
+// chain (leaf <- WR1 <- Root R1) and picks by ClientHello. This build uses
+// BEARSSL_SSL_BASIC: RSA-only cipher suites, no ECDSA verification, so the
+// device is served the RSA chain and only Root R1 does the work; R3/R4
+// (ECDSA) cost nothing at runtime and stay for a future non-BASIC build.
 // Deliberately narrow - a wider bundle (see CaBundle.h) parses to ~8 RSA-4096
 // trust anchors and starves the heap during the poll-path TLS handshake
 // (observed StoreProhibited crash). OTA URL uses the wide bundle instead:

@@ -576,7 +576,11 @@ void loop() {
     updateLed(relay.isOn());
     led.tick(now);
 
-    if (apiReady() && static_cast<int32_t>(now - nextPollAt) >= 0) doPoll();
+    // The poll is synchronous (TLS handshake + body: seconds). Started while
+    // the relay is ON it would stretch the siren's ON phase to the poll
+    // length; waiting for the pattern's OFF gap stretches silence instead.
+    // ON phases are bounded by RelayGuard, so the wait is bounded too.
+    if (apiReady() && !relay.isOn() && static_cast<int32_t>(now - nextPollAt) >= 0) doPoll();
 
     static uint32_t lastBeat = 0;
     if (now - lastBeat >= 30000) {

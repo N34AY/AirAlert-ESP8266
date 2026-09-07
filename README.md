@@ -30,7 +30,7 @@ Home Assistant, MQTT-брокера чи хмарного сервера.
 ## Швидкий старт
 
 ```bash
-pio test -e native                  # 100 тестів бізнес-логіки
+pio test -e native                  # 105 тестів бізнес-логіки
 pio run -e nodemcuv2_prod           # прошивка
 py -3 -m esptool --port COM3 --baud 921600 write-flash 0x0 \
     .pio/build/nodemcuv2_prod/firmware.bin

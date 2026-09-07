@@ -85,6 +85,15 @@ class FirmwareBoundaryContractTests(unittest.TestCase):
         self.assertIn("WifiService::State::Provisioning", source[start:end])
         self.assertIn("!authed()", source[start:end])
 
+    def test_poll_never_starts_while_the_relay_is_on(self):
+        source = (ROOT / "src/main.cpp").read_text()
+        loop = source.index("void loop()")
+        call = source.index("doPoll();", loop)
+        line = source[source.rindex("\n", 0, call):call]
+
+        # the poll blocks loop() for seconds: it must wait for the OFF gap
+        self.assertIn("!relay.isOn()", line)
+
     def test_relay_deadline_uses_an_independent_timer_callback(self):
         source = (ROOT / "src/hardware/RelayController.h").read_text()
 

@@ -41,7 +41,12 @@ OTA-бюджет: образ має вміщатися у вільний сек�
 
 - Base: `https://api.ukrainealarm.com`, runtime endpoint: `GET /api/v3/alerts`
   (~20 КБ, масив регіонів з активними тривогами), заголовок `Authorization: <key>`
-  без схеми. Cloudflare, ланцюжок GTS WE1 → GTS Root R4 — trust anchors ті самі.
+  без схеми. Cloudflare має два ланцюжки — ECDSA (WE1 → GTS Root R4) і RSA
+  (WR1 → GTS Root R1) — і обирає за ClientHello. Наш клієнт із
+  `BEARSSL_SSL_BASIC` пропонує лише 4 static-RSA AES-CBC сюїти і не вміє
+  верифікувати ECDSA, тож отримує RSA-ланцюжок; Root R1 є серед anchors, а
+  Cloudflare приймає `TLS_RSA_WITH_AES_128_CBC_SHA(256)` (перевірено openssl
+  з обмеженим cipher list + RSA sigalgs). Trust anchors міняти не треба.
 - Форма: `[{regionId, regionType, activeAlerts:[{regionId, type,
   activeAlertLevels:[{alertLevel: Red|Yellow, reason, createdAt}]}]}]`. Запис
   регіону містить і успадковані тривоги батьків (район ← область).

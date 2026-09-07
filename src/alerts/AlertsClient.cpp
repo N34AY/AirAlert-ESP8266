@@ -18,15 +18,26 @@ static const char kAlertsUrl[] = "https://api.ukrainealarm.com/api/v3/alerts";
 AlertsClient::Result::Kind AlertsClient::parseBody(Stream& in,
                                                    airalert::SnapshotBuilder& builder,
                                                    Result& r) {
+    // Two limits: 20 s total for a busy-night body (20-35 KB over a weak
+    // link) and 5 s without a single byte, so a dead connection fails fast
+    // while a slow one that still delivers is allowed to finish. loop() is
+    // blocked meanwhile; main never starts a poll while the relay is ON.
+    const uint32_t start = millis();
+    uint32_t lastByteAt = start;
+    const auto timedOut = [&] {
+        const uint32_t now = millis();
+        return now - start >= 20000 || now - lastByteAt >= 5000;
+    };
+
     // 1) scan to the opening '[' of the region array
     bool inArray = false;
-    const uint32_t deadline = millis() + 8000;
-    while (static_cast<int32_t>(millis() - deadline) < 0) {
+    while (!timedOut()) {
         const int c = in.read();
         if (c < 0) {
             if (!in.available()) delay(1);
             continue;
         }
+        lastByteAt = millis();
         if (c == '[') { inArray = true; break; }
         if (c != ' ' && c != '\r' && c != '\n' && c != '\t') break; // not an array body
     }
@@ -40,9 +51,10 @@ AlertsClient::Result::Kind AlertsClient::parseBody(Stream& in,
     airalert::buildAlertElementFilter(filter);
 
     // 2) element loop: {..},{..}] — one small filtered doc per region entry
-    while (static_cast<int32_t>(millis() - deadline) < 0) {
+    while (!timedOut()) {
         int c = in.peek();
         if (c < 0) { delay(1); continue; }
+        lastByteAt = millis();
         if (c == ']') { in.read(); return Result::Kind::Ok; }
         if (c == ',' || c == ' ' || c == '\r' || c == '\n' || c == '\t') {
             in.read();

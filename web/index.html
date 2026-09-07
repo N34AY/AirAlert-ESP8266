@@ -137,6 +137,7 @@ button.btn.warn{background:#a35b18}button.btn.bad{background:#a33030}button.btn.
 <div style="margin-top:8px"><button class="btn" onclick="saveToken()">Зберегти токен</button></div>
 <label>Інтервал опитування, с (10–600)</label>
 <input id="a_poll" type="number" min="10" max="600">
+<p class="mut">ukrainealarm приймає ~3 запити/хв на ключ: інтервал менше 20 с лише збільшує частку відмов (401).</p>
 <label>Дані застарілі після, с</label>
 <input id="a_stale" type="number" min="30" max="600">
 <div style="margin-top:8px"><button class="btn" onclick="saveConfig()">Зберегти</button></div>
