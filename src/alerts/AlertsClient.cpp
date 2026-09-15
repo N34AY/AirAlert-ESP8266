@@ -9,6 +9,13 @@
 static const char kAlertsHost[] = "api.ukrainealarm.com";
 static const char kAlertsUrl[] = "https://api.ukrainealarm.com/api/v3/alerts";
 
+// TLS handshake peak on this core: ~4.6 KB iobufs (4096 rx without MFLN) +
+// ~3 KB x509 ctx + ~5 KB client ctx + HTTPClient strings. Below these the
+// allocations fail and the core panics (OOM abort), so we refuse to start.
+static const uint32_t kTlsMinFreeHeap = 15000;
+static const uint32_t kTlsMinBlock = 6144;
+static const int kLowHeapCode = -100; // shows up as API_OFFLINE code=-100
+
 // Constant-memory body parse: the response is a top-level array of region
 // entries, deserialized ONE ENTRY at a time, so heap use does not grow with
 // the nationwide alert count. A whole-document parse hit
@@ -93,6 +100,22 @@ AlertsClient::Result AlertsClient::poll(airalert::SnapshotBuilder& builder) {
     }
 #endif
     if (client == &secureClient) {
+        // Heap guard: the ESP8266 core aborts on a failed `new`, so a TLS
+        // context that cannot be allocated is a reboot loop, not a code=-1.
+        // Seen on hardware with the Web UI polling: free 26 KB but no
+        // contiguous 3080 B for br_x509_minimal_context. Skip this poll and
+        // report it as a network error; the caller's backoff handles cadence.
+        // ponytail: thresholds are measured, not derived - see docs/RESEARCH.md
+        const uint32_t freeHeap = ESP.getFreeHeap();
+        const uint32_t maxBlock = ESP.getMaxFreeBlockSize();
+        Serial.printf("[API] poll heap=%u block=%u frag=%u%%\n", freeHeap, maxBlock,
+                      ESP.getHeapFragmentation());
+        if (freeHeap < kTlsMinFreeHeap || maxBlock < kTlsMinBlock) {
+            r.kind = Result::Kind::NetError;
+            r.httpCode = kLowHeapCode;
+            r.heapAtError = freeHeap;
+            return r;
+        }
 #ifdef AIRALERT_DEV
         if (devMockTls) {
             static BearSSL::X509List devCas(CA_BUNDLE_PEM);
@@ -109,9 +132,11 @@ AlertsClient::Result AlertsClient::poll(airalert::SnapshotBuilder& builder) {
         // that margin is the difference between polling and code=-1 on a
         // ~25 KB heap. Falls back to 4096 when unsupported.
         static int8_t mfln = -1; // -1 unknown, 0 no, 1 yes
-        if (mfln < 0 && url == kAlertsUrl)
+        if (mfln < 0 && url == kAlertsUrl) {
             mfln = BearSSL::WiFiClientSecure::probeMaxFragmentLength(
                        kAlertsHost, 443, 1024) ? 1 : 0;
+            Serial.printf("[API] mfln=%d rx=%u\n", mfln, mfln == 1 ? 1024u : 4096u);
+        }
         secureClient.setBufferSizes(mfln == 1 ? 1024 : 4096, 512); // SPEC 113
     }
 

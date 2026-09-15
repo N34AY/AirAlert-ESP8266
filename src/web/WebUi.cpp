@@ -382,7 +382,7 @@ void WebUi::handleSystem() { // SPEC 114, 126
     if (!authed()) return;
     JsonDocument d;
     d["firmware"] = AIRALERT_VERSION;
-    d["build"] = __DATE__ " " __TIME__;
+    d["build"] = AIRALERT_BUILD; // set per build in platformio.ini, unlike __DATE__ (per-file compile)
     d["core"] = ESP.getCoreVersion();
     d["reset_reason"] = ESP.getResetReason();
     d["uptime_sec"] = millis() / 1000;
@@ -621,7 +621,25 @@ void WebUi::sendError(int code, const char* errCode, const char* msg) { // SPEC 
 }
 
 void WebUi::sendJson(const JsonDocument& d, int code) {
+    // Heap-fragmentation guard: the Web UI polls /status every 5 s. Building a
+    // String here reallocs ~10x per response (grows in ~31 B steps), each leaving
+    // a hole; after a minute the largest free block collapses (measured 30% frag
+    // at 19 KB free) and the next TLS poll can't get its contiguous 4 KB RX buffer.
+    // Small responses (status/system/mute/errors, < ~430 B) serialize into a stack
+    // buffer and stream out with chunked encoding: zero heap, zero fragmentation.
+    const size_t len = measureJson(d);
+    if (len < 768) {
+        char buf[768];
+        serializeJson(d, buf, sizeof buf);
+        server_.setContentLength(len);
+        server_.send(code, "application/json", "");
+        server_.sendContent(buf, len);
+        server_.sendContent("");
+        return;
+    }
+    // Rare large docs (config ~2.3 KB): one exact allocation, no realloc churn.
     String out;
+    out.reserve(len + 1);
     serializeJson(d, out);
     server_.send(code, "application/json", out);
 }
