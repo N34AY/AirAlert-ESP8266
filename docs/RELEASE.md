@@ -26,4 +26,13 @@ manifest.json для URL-OTA:
 
 ## Версіонування
 
-SemVer, тег `vX.Y.Z`, версія в platformio.ini (AIRALERT_VERSION).
+SemVer. Єдине джерело істини — файл `VERSION` у корені (один рядок `X.Y.Z`).
+`tools/build_stamp.py` підставляє його як `AIRALERT_VERSION` на кожній збірці.
+Бамп версії:
+
+```sh
+echo 0.9.2 > VERSION            # єдина зміна версії
+# додати запис у CHANGELOG.md, потім:
+git commit -am "Release 0.9.2"
+git tag v0.9.2
+```
