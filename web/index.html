@@ -99,16 +99,20 @@ button.btn.warn{background:#a35b18}button.btn.bad{background:#a33030}button.btn.
 <section id="t-relay" class="hide">
 <div class="card">
 <h2>Реле / Сирена</h2>
-<div class="warnbox">⚠ УВАГА: «Тест реле» фізично вмикає реле і все, що до нього підключене.</div>
+<div class="warnbox">⚠ УВАГА: тести фізично натискають кнопки сирени. Реле 1 (D5) — СТАРТ, реле 2 (D6) — СТОП.</div>
 <label>Полярність</label>
 <select id="r_ah"><option value="1">ACTIVE HIGH</option><option value="0">ACTIVE LOW</option></select>
 <label>Макс. безперервно УВІМК, мс (1000–60000)</label>
 <input id="r_max" type="number" min="1000" max="60000">
-<label>Тривалість тесту, мс (100–1000)</label>
-<input id="r_test" type="number" min="100" max="1000">
+<label>Тест-цикл: пауза між СТАРТ і СТОП, мс (600–10000)</label>
+<input id="r_test" type="number" min="600" max="10000">
 <div class="row" style="margin-top:12px">
 <button class="btn" onclick="saveConfig()">Зберегти</button>
-<button class="btn warn" onclick="testRelay()">⚡ Тест реле</button>
+<button class="btn warn" onclick="testRelay()">⚡ Тест: СТАРТ → СТОП</button>
+</div>
+<div class="row" style="margin-top:8px">
+<button class="btn warn" onclick="testRelay('start')">▶ Імпульс СТАРТ (реле 1, D5)</button>
+<button class="btn" onclick="testRelay('stop')">■ Імпульс СТОП (реле 2, D6)</button>
 </div>
 </div>
 <div class="card">
@@ -267,8 +271,11 @@ async function saveLocs(){try{const locs=selected.filter(u=>cat.some(x=>x.uid===
 async function saveToken(){const t=$("newtok").value.trim();if(!t)return;
  try{await put("/api/v1/secrets/api-token",{token:t});$("newtok").value="";alert("Ключ збережено");loadTok()}catch(e){alert("Помилка: "+e.message)}}
 async function loadTok(){try{const s=await get("/api/v1/status");$("tokstate").textContent=s.api.token_present?"налаштовано":"ВІДСУТНІЙ"}catch(e){}}
-async function testRelay(){if(!confirm("Фізично увімкнути реле на "+$("r_test").value+" мс?"))return;
- try{await post("/api/v1/test/relay")}catch(e){alert("Помилка: "+e.message)}}
+async function testRelay(ch){
+ const q=ch==="start"?"Натиснути СТАРТ (реле 1)? Сирена звучатиме до імпульсу СТОП або safety-ліміту.":
+  ch==="stop"?null:"Натиснути СТАРТ, а через "+Math.max(+$("r_test").value,600)+" мс — СТОП?";
+ if(q&&!confirm(q))return;
+ try{await post("/api/v1/test/relay"+(ch?"?relay="+ch:""))}catch(e){alert("Помилка: "+e.message)}}
 async function relayOff(){try{await post("/api/v1/relay/off");refresh()}catch(e){}}
 async function loadLog(){try{const t=await get("/api/v1/events?ts="+Date.now());
  $("logbody").textContent=t.trim().split("\n").reverse().map(l=>{try{const r=JSON.parse(l);

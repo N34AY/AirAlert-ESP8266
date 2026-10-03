@@ -9,3 +9,4 @@ secrets.json
 *.elf
 __pycache__/
 .serena/
+.venv/

@@ -29,8 +29,9 @@
 using namespace airalert;
 
 namespace pins {
-constexpr uint8_t RELAY = 14;       // D5 (SPEC 61, 64)
-constexpr uint8_t MUTE = 12;        // D6
+constexpr uint8_t SIREN_START = 14; // D5 — relay 1, pulse = START button (SPEC 61, 64)
+constexpr uint8_t SIREN_STOP = 12;  // D6 — relay 2, pulse = STOP button
+constexpr uint8_t MUTE = 5;         // D1 (D6 is taken by the STOP relay)
 constexpr uint8_t TEST = 13;        // D7
 constexpr uint8_t BUILTIN_LED = 2;  // D4, inverted — SYSTEM indicator
 constexpr uint8_t ALERT_OUT = 16;   // D0 — alert LED or indication relay
@@ -140,10 +141,13 @@ static void applyConfig() {
                       appCfg.partialActive});
     notify.setMuteConfig({appCfg.snoozeMinutes * 60000u, appCfg.muteAllAlertTypes});
     notify.setConfig({appCfg.notifyEscalation, appCfg.notifyAdditionalLocation,
-                      appCfg.remindersWhenStale, appCfg.relayTestMs});
+                      appCfg.remindersWhenStale,
+                      // START and STOP presses must be audibly separate clicks
+                      std::max<uint16_t>(appCfg.relayTestMs, 2 * RelayController::kPulseMs)});
     for (uint8_t i = 0; i < kAlertTypeCount; ++i)
         notify.setProfile(static_cast<AlertType>(i), appCfg.profiles[i]);
-    relay.begin(pins::RELAY, appCfg.relayActiveHigh, appCfg.relayMaxOnMs);
+    relay.begin(pins::SIREN_START, pins::SIREN_STOP, appCfg.relayActiveHigh,
+                appCfg.relayMaxOnMs);
     backoff.setConfig({appCfg.pollIntervalSec * 1000u, 120000, 60000, 300000, 10});
     health.setConfig({appCfg.apiStaleAfterSec * 1000u});
     builder.setSelected(appCfg.selected, appCfg.selectedCount);
@@ -391,9 +395,14 @@ static void handleSerialLine(String line) {
     } else if (line == "unmute") {
         notify.unmute();
         eventLog.log(LogEvent::Unmute);
-    } else if (line == "test") { // SPEC 54
+    } else if (line == "test") { // SPEC 54: full START -> STOP cycle
         notify.manualTest(millis());
         eventLog.log(LogEvent::Test, "source=serial");
+    } else if (line == "test start" || line == "test stop") { // one relay
+        if (notify.playing()) { Serial.println("[RELAY] busy: a pattern is playing"); return; }
+        const bool start = line == "test start";
+        relay.testPulse(start);
+        eventLog.log(LogEvent::Test, start ? "source=serial relay=start" : "source=serial relay=stop");
     } else if (line == "status") {
         Serial.printf("[ST] wifi=%d ntp=%d active=%d muted=%d playing=%d relay=%d tripped=%d heap=%u\n",
                       wifi.online(), ntpSynced, engine.anyActive(), notify.muted(),
@@ -427,7 +436,7 @@ static void handleSerialLine(String line) {
         Serial.println("[SIM] dev build only");
 #endif
     } else if (line.length()) {
-        Serial.println("[CFG] setwifi|settoken|setpass|setmock|forgetwifi|show|restart|mute|unmute|test|status|config|log|sim");
+        Serial.println("[CFG] setwifi|settoken|setpass|setmock|forgetwifi|show|restart|mute|unmute|test [start|stop]|status|config|log|sim");
     }
 }
 
@@ -448,7 +457,7 @@ static void pollSerial() {
 void setup() {
     // step 1: relay safe OFF before anything else (Invariant 3).
     // Default polarity assumption until config loads (SPEC 39).
-    relay.begin(pins::RELAY, true, 30000);
+    relay.begin(pins::SIREN_START, pins::SIREN_STOP, true, 30000);
 
     Serial.begin(115200);
     Serial.println();
@@ -467,6 +476,9 @@ void setup() {
         Serial.println("[CFG] using default config");
     }
     applyConfig();
+    // The siren latches: a reset mid-pattern would leave it howling. Press
+    // STOP once, now that the real relay polarity is known.
+    relay.forceOff();
     stateStore.load(pstate);
     eventLog.begin();
     eventLog.log(LogEvent::Boot, ESP.getResetReason().c_str());

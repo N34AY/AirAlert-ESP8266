@@ -78,7 +78,7 @@ inline ConfigError validateConfig(const AppConfig& c) {
     if (c.startConfirmations < 1 || c.startConfirmations > 5 ||
         c.endConfirmations < 1 || c.endConfirmations > 10) return ConfigError::BadConfirmations;
     if (c.relayMaxOnMs < 1000 || c.relayMaxOnMs > 60000) return ConfigError::BadRelayLimit;
-    if (c.relayTestMs < 100 || c.relayTestMs > 1000) return ConfigError::BadTestMs;
+    if (c.relayTestMs < 100 || c.relayTestMs > 10000) return ConfigError::BadTestMs;
     if (c.snoozeMinutes < 1 || c.snoozeMinutes > 240) return ConfigError::BadSnooze;
     if (c.selectedCount > SnapshotBuilder::kMaxSelected) return ConfigError::TooManyLocations;
     for (uint8_t i = 0; i < c.selectedCount; ++i) {

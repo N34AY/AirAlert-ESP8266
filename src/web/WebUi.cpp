@@ -132,8 +132,19 @@ void WebUi::begin(const Deps& d) {
     });
     server_.on("/api/v1/test/relay", HTTP_POST, [this] { // SPEC 54, 77
         if (!authed()) return;
-        d_.notify->manualTest(millis());
-        d_.log->log(LogEvent::Test, "source=web");
+        const String relay = server_.arg("relay"); // "", "start" or "stop"
+        if (relay == "start" || relay == "stop") { // one relay, commissioning
+            if (d_.notify->playing())
+                return sendError(409, "BUSY", "a siren pattern is playing");
+            d_.relay->testPulse(relay == "start");
+            d_.log->log(LogEvent::Test, relay == "start" ? "source=web relay=start"
+                                                         : "source=web relay=stop");
+        } else if (relay.length()) {
+            return sendError(400, "BAD_RELAY", "relay must be start or stop");
+        } else { // full START -> STOP cycle
+            d_.notify->manualTest(millis());
+            d_.log->log(LogEvent::Test, "source=web");
+        }
         server_.send(200, "application/json", "{\"ok\":true}");
     });
     server_.on("/api/v1/relay/off", HTTP_POST, [this] { // SPEC 125 manual override
