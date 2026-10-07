@@ -150,7 +150,7 @@ void WebUi::begin(const Deps& d) {
     server_.on("/api/v1/relay/off", HTTP_POST, [this] { // SPEC 125 manual override
         if (!authed()) return;
         d_.notify->stopAll();
-        d_.relay->forceOff();
+        d_.relay->forceOff("web");
         server_.send(200, "application/json", "{\"ok\":true}");
     });
     server_.on("/api/v1/reboot", HTTP_POST, [this] {

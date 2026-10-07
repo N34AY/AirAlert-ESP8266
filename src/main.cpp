@@ -94,7 +94,7 @@ static bool apiReady() {
 }
 
 static void muteNow(bool longPress) {
-    relay.forceOff(); // Invariant 4: relay OFF before anything else
+    relay.forceOff("mute"); // Invariant 4: relay OFF before anything else
     if (longPress) notify.muteLong(millis());
     else notify.muteShort(millis());
     eventLog.log(LogEvent::Mute, longPress ? "scope=snooze" : "scope=until_clear");
@@ -113,19 +113,19 @@ static Ticker otaWatchdog;
 static void prepareOta() { // Invariant 8
     otaInProgress = true;
     notify.stopAll();
-    relay.forceOff();
+    relay.forceOff("ota");
     otaWatchdog.once_ms(kOtaDeadlineMs, [] { ESP.restart(); });
 }
 
 static void finishFailedOta() {
     otaWatchdog.detach();
-    relay.forceOff();
+    relay.forceOff("ota");
     otaInProgress = false;
 }
 
 static void refreshLocations() {
     activeView = ActiveLocationView{}; // drop rows for locations no longer selected
-    relay.forceOff();
+    relay.forceOff("locations");
     notify.resetAlertState();
     engine.reset();
     builder.reset();
@@ -455,9 +455,10 @@ static void pollSerial() {
 
 // ---- boot -------------------------------------------------------------------
 void setup() {
-    // step 1: relay safe OFF before anything else (Invariant 3).
-    // Default polarity assumption until config loads (SPEC 39).
-    relay.begin(pins::SIREN_START, pins::SIREN_STOP, true, 30000);
+    // step 1: relay safe OFF (Invariant 3). The relay pins are left as reset
+    // inputs (high-Z = released) until applyConfig() knows the real polarity:
+    // driving them with a guessed one would press START+STOP together on an
+    // active-LOW module for as long as LittleFS takes to mount.
 
     Serial.begin(115200);
     Serial.println();
@@ -476,9 +477,6 @@ void setup() {
         Serial.println("[CFG] using default config");
     }
     applyConfig();
-    // The siren latches: a reset mid-pattern would leave it howling. Press
-    // STOP once, now that the real relay polarity is known.
-    relay.forceOff();
     stateStore.load(pstate);
     eventLog.begin();
     eventLog.log(LogEvent::Boot, ESP.getResetReason().c_str());
@@ -518,6 +516,21 @@ void setup() {
 
     if (!secrets.apiToken.length())
         Serial.println("[API] DEVICE NOT READY: no API token (SPEC 162)");
+}
+
+// Physical START/STOP presses -> event log, so the Web UI journal shows them.
+static void logRelayPresses() {
+    RelayController::Press p;
+    uint8_t dropped;
+    char detail[48];
+    while (relay.popPress(p, dropped)) {
+        snprintf(detail, sizeof detail, "relay=%s reason=%s", p.start ? "start" : "stop", p.why);
+        eventLog.log(LogEvent::RelayPress, detail);
+    }
+    if (dropped) {
+        snprintf(detail, sizeof detail, "dropped=%u", dropped);
+        eventLog.log(LogEvent::RelayPress, detail);
+    }
 }
 
 static void updateLed(bool sirenOn) {
@@ -584,6 +597,7 @@ void loop() {
     relay.tick(siren, now);
     if (relay.consumeSafetyTrip())
         eventLog.log(LogEvent::RelaySafetyTrip); // Invariant 2 fired
+    logRelayPresses();
 
     updateLed(relay.isOn());
     led.tick(now);
