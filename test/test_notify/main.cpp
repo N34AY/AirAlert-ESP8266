@@ -19,12 +19,13 @@ void test_start_plays_start_pattern() {
     TEST_ASSERT_TRUE(n.tick(4200));   // second repeat
 }
 
-void test_startup_active_is_short() { // SPEC 26-27
+void test_silent_start_makes_no_sound_but_end_does() { // SPEC 26
     NotificationEngine n;
-    n.onEngineEvent(started(AlertType::AirRaid), NotificationEngine::StartupMode::Short, 0);
-    TEST_ASSERT_TRUE(n.tick(0));
-    TEST_ASSERT_FALSE(n.tick(1000)); // single 1000 ms pulse, done
-    TEST_ASSERT_FALSE(n.playing());
+    n.onEngineEvent(started(AlertType::AirRaid), NotificationEngine::StartupMode::Silent, 0);
+    TEST_ASSERT_FALSE(n.tick(0));
+    TEST_ASSERT_EQUAL(0, n.queued());
+    n.onEngineEvent(ended(AlertType::AirRaid), NotificationEngine::StartupMode::Normal, 5000);
+    TEST_ASSERT_TRUE(n.tick(5000)); // the all-clear came after boot: voiced
 }
 
 void test_mute_silences_immediately() { // Invariant 4
@@ -102,7 +103,7 @@ void test_stale_data_suppresses_reminders_by_default() {
     p.reminder = Pattern{true, 500, 0, 1};
     p.reminderIntervalMs = 1000;
     n.setProfile(AlertType::AirRaid, p);
-    n.onEngineEvent(started(AlertType::AirRaid), NotificationEngine::StartupMode::Short, 0);
+    n.onEngineEvent(started(AlertType::AirRaid), NotificationEngine::StartupMode::Silent, 0);
     n.tick(0);
     n.setApiStale(true);
     TEST_ASSERT_FALSE(n.tick(1000));
@@ -118,11 +119,11 @@ void test_stale_reminders_can_be_enabled() {
     p.reminder = Pattern{true, 500, 0, 1};
     p.reminderIntervalMs = 1000;
     n.setProfile(AlertType::AirRaid, p);
-    n.onEngineEvent(started(AlertType::AirRaid), NotificationEngine::StartupMode::Short, 0);
+    n.onEngineEvent(started(AlertType::AirRaid), NotificationEngine::StartupMode::Silent, 0);
     n.tick(0);
     n.setApiStale(true);
-    TEST_ASSERT_FALSE(n.tick(1000));
-    TEST_ASSERT_TRUE(n.tick(1001));
+    TEST_ASSERT_FALSE(n.tick(999));
+    TEST_ASSERT_TRUE(n.tick(1000));
 }
 
 void test_end_does_not_preempt_start() { // SPEC 47
@@ -139,9 +140,8 @@ void test_start_preempts_reminder() { // SPEC 47
     p.reminder = Pattern{true, 10000, 0, 1}; // long reminder to preempt
     p.reminderIntervalMs = 1000;
     n.setProfile(AlertType::AirRaid, p);
-    n.onEngineEvent(started(AlertType::AirRaid), NotificationEngine::StartupMode::Short, 0); // short startup
+    n.onEngineEvent(started(AlertType::AirRaid), NotificationEngine::StartupMode::Silent, 0);
     n.tick(0);
-    n.tick(1100); // startup done
     TEST_ASSERT_TRUE(n.tick(1200)); // reminder playing (interval passed)
     n.onEngineEvent(started(AlertType::Chemical), NotificationEngine::StartupMode::Normal, 1300);
     n.tick(1300);
@@ -156,9 +156,8 @@ void test_reminder_interval() {
     p.reminder = Pattern{true, 500, 0, 1};
     p.reminderIntervalMs = 60000;
     n.setProfile(AlertType::AirRaid, p);
-    n.onEngineEvent(started(AlertType::AirRaid), NotificationEngine::StartupMode::Short, 0);
+    n.onEngineEvent(started(AlertType::AirRaid), NotificationEngine::StartupMode::Silent, 0);
     n.tick(0);
-    n.tick(1100); // startup pulse done
     TEST_ASSERT_FALSE(n.tick(30000)); // not yet
     TEST_ASSERT_TRUE(n.tick(60001)); // reminder fires
 }
@@ -225,7 +224,7 @@ void test_silent_end_is_bookkeeping_only() {
 int main() {
     UNITY_BEGIN();
     RUN_TEST(test_start_plays_start_pattern);
-    RUN_TEST(test_startup_active_is_short);
+    RUN_TEST(test_silent_start_makes_no_sound_but_end_does);
     RUN_TEST(test_mute_silences_immediately);
     RUN_TEST(test_new_type_overrides_mute);
     RUN_TEST(test_muted_type_stays_silent_until_clear);

@@ -12,8 +12,8 @@
 #include "airalert/BackoffPolicy.h"
 #include "airalert/Config.h"
 #include "airalert/NotificationEngine.h"
+#include "airalert/PreexistingAlerts.h"
 #include "airalert/SnapshotBuilder.h"
-#include "airalert/StartupPolicy.h"
 #include "alerts/AlertsClient.h"
 #include "alerts/LocationCatalog.h"
 #include "config/ConfigStore.h"
@@ -23,7 +23,6 @@
 #include "hardware/Indication.h"
 #include "network/WifiService.h"
 #include "storage/EventLogStore.h"
-#include "storage/StateStore.h"
 #include "web/WebUi.h"
 
 using namespace airalert;
@@ -40,8 +39,6 @@ constexpr uint8_t ALERT_OUT = 16;   // D0 — alert LED or indication relay
 static SecretsStore secrets;
 static AppConfig appCfg;
 static ConfigStore configStore;
-static StateStore stateStore;
-static PersistedState pstate;
 static EventLogStore eventLog;
 static AlertsClient client;
 static AlertEngine engine;
@@ -173,27 +170,23 @@ static const char* eventName(AlertEvent e) {
     }
 }
 
+static PreexistingAlerts preexisting; // SPEC 26
+
 // Shared by the real poller and the dev `sim` command.
 static void applyAndNotify(const AlertEngine::Snapshot& snap, bool simulated) {
-    const bool firstSync = !engine.synced(); // SPEC 26
-
-    auto startupMode = NotificationEngine::StartupMode::Normal;
-    if (firstSync) { // SPEC 26-28
-        const uint32_t fp = StartupPolicy::fingerprint(snap);
-        const int64_t nowUtc = time(nullptr) > 1600000000 ? time(nullptr) : 0;
-        startupMode = StartupPolicy::shouldNotify(
-                          fp, pstate.alertFingerprint, pstate.startupNotifAtUtc,
-                          nowUtc, appCfg.startupCooldownSec)
-                          ? NotificationEngine::StartupMode::Short
-                          : NotificationEngine::StartupMode::Silent;
-    }
+    preexisting.observe(snap, !engine.synced(), appCfg.partialActive);
 
     EngineEvent ev[8];
     const size_t n = engine.applySnapshot(snap, ev, 8); // SPEC 168
     for (size_t i = 0; i < n; ++i) {
-        Serial.printf("[ALARM] %s type=%s%s\n", eventName(ev[i].kind),
-                      alertTypeToString(ev[i].type), simulated ? " (SIM)" : "");
-        auto mode = startupMode;
+        const bool alreadyActive =
+            ev[i].kind == AlertEvent::Started && preexisting.consumeStart(ev[i].type);
+        Serial.printf("[ALARM] %s type=%s%s%s\n", eventName(ev[i].kind),
+                      alertTypeToString(ev[i].type),
+                      alreadyActive ? " (already active, silent)" : "",
+                      simulated ? " (SIM)" : "");
+        auto mode = alreadyActive ? NotificationEngine::StartupMode::Silent
+                                  : NotificationEngine::StartupMode::Normal;
         // SPEC 20: partial-only alert with siren disabled for partial
         if (ev[i].kind == AlertEvent::Started && !appCfg.partialSiren &&
             engine.status(ev[i].type).coverage == Coverage::Partial)
@@ -219,13 +212,6 @@ static void applyAndNotify(const AlertEngine::Snapshot& snap, bool simulated) {
                 break;
             default: break;
         }
-    }
-    if (n > 0 || firstSync) { // SPEC 96: persist only on change
-        pstate.alertFingerprint = StartupPolicy::fingerprint(snap);
-        if (n > 0 || startupMode == NotificationEngine::StartupMode::Short)
-            pstate.startupNotifAtUtc = time(nullptr);
-        if (!stateStore.save(pstate))
-            Serial.println("[STATE] persistence failed");
     }
 }
 
@@ -477,7 +463,6 @@ void setup() {
         Serial.println("[CFG] using default config");
     }
     applyConfig();
-    stateStore.load(pstate);
     eventLog.begin();
     eventLog.log(LogEvent::Boot, ESP.getResetReason().c_str());
 

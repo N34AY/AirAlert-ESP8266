@@ -40,9 +40,6 @@ struct AppConfig {
     uint16_t snoozeMinutes = 15;
     bool muteAllAlertTypes = false;
 
-    // reboot-loop guard (SPEC 28)
-    uint16_t startupCooldownSec = 300;
-
     // indication (simplified two-channel scheme; rgb mode reserved for the
     // future WS2812/MCP23017 backend)
     bool alertIndicatorSteady = false;     // true when it drives a relay/lamp
@@ -167,7 +164,6 @@ inline void configToJson(const AppConfig& c, JsonDocument& d) {
     r["test_ms"] = c.relayTestMs;
     d["mute"]["snooze_min"] = c.snoozeMinutes;
     d["mute"]["all_types"] = c.muteAllAlertTypes;
-    d["startup"]["cooldown_sec"] = c.startupCooldownSec;
     d["led"]["alert_steady"] = c.alertIndicatorSteady;
     d["led"]["alert_active_high"] = c.alertIndicatorActiveHigh;
     JsonArray locs = d["locations"].to<JsonArray>();
@@ -196,7 +192,7 @@ inline void configToJson(const AppConfig& c, JsonDocument& d) {
 inline ConfigError configFromJson(JsonVariantConst d, AppConfig& c) {
     if (!d.is<JsonObjectConst>()) return ConfigError::BadPattern;
     if (!overlayUnsigned(d["schema"], c.schemaVersion)) return ConfigError::BadSchema;
-    for (const char* section : {"device", "alerts", "relay", "mute", "startup", "led"})
+    for (const char* section : {"device", "alerts", "relay", "mute", "led"})
         if (!d[section].isNull() && !d[section].is<JsonObjectConst>())
             return ConfigError::BadPattern;
     const char* name = d["device"]["name"] | static_cast<const char*>(nullptr);
@@ -227,8 +223,6 @@ inline ConfigError configFromJson(JsonVariantConst d, AppConfig& c) {
     if (!overlayUnsigned(d["mute"]["snooze_min"], c.snoozeMinutes) ||
         !overlayBool(d["mute"]["all_types"], c.muteAllAlertTypes))
         return ConfigError::BadSnooze;
-    if (!overlayUnsigned(d["startup"]["cooldown_sec"], c.startupCooldownSec))
-        return ConfigError::BadPattern;
     if (!overlayBool(d["led"]["alert_steady"], c.alertIndicatorSteady) ||
         !overlayBool(d["led"]["alert_active_high"], c.alertIndicatorActiveHigh))
         return ConfigError::BadPattern;

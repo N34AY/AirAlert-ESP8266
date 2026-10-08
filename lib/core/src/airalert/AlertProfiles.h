@@ -35,8 +35,6 @@ inline AlertProfile defaultProfile(AlertType t) {
     return p;
 }
 
-// SPEC 27: startup during already-active alert -> one short pulse.
-inline Pattern startupPattern() { return Pattern{true, 1000, 0, 1}; }
 // SPEC 54: manual TEST -> 500-1000 ms single relay pulse.
 inline Pattern manualTestPattern() { return Pattern{true, 600, 0, 1}; }
 

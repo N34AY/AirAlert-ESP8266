@@ -1,8 +1,7 @@
-// Config round-trip / validation / migration + StartupPolicy + log format
+// Config round-trip / validation / migration + log format
 #include <unity.h>
 #include <string>
 #include "airalert/Config.h"
-#include "airalert/StartupPolicy.h"
 #include "airalert/EventLog.h"
 
 using namespace airalert;
@@ -165,34 +164,6 @@ void test_validation_rejects_bad_ranges() { // SPEC 7, 42, 155
     TEST_ASSERT_EQUAL(ConfigError::BadConfirmations, validateConfig(c));
 }
 
-static AlertEngine::Snapshot activeSnap(int64_t startedAt) {
-    AlertEngine::Snapshot s{};
-    s.types[0] = {Coverage::Full, 1, startedAt};
-    return s;
-}
-
-void test_fingerprint_stability() {
-    const uint32_t f1 = StartupPolicy::fingerprint(activeSnap(1000));
-    TEST_ASSERT_EQUAL_UINT32(f1, StartupPolicy::fingerprint(activeSnap(1000)));
-    TEST_ASSERT_NOT_EQUAL(f1, StartupPolicy::fingerprint(activeSnap(2000)));
-    AlertEngine::Snapshot empty{};
-    TEST_ASSERT_EQUAL_UINT32(0x811C9DC5u, StartupPolicy::fingerprint(empty));
-}
-
-void test_startup_policy_cooldown() { // SPEC 28
-    const uint32_t fp = StartupPolicy::fingerprint(activeSnap(1000));
-    // fresh alert set: notify
-    TEST_ASSERT_TRUE(StartupPolicy::shouldNotify(fp, 0, 0, 5000, 300));
-    // same set, 100 s after last notification: silent
-    TEST_ASSERT_FALSE(StartupPolicy::shouldNotify(fp, fp, 5000, 5100, 300));
-    // same set, cooldown passed: notify again
-    TEST_ASSERT_TRUE(StartupPolicy::shouldNotify(fp, fp, 5000, 5301, 300));
-    // same set, clock unknown: stay silent (crash loop cannot re-siren)
-    TEST_ASSERT_FALSE(StartupPolicy::shouldNotify(fp, fp, 5000, 0, 300));
-    // empty set: nothing to notify
-    TEST_ASSERT_FALSE(StartupPolicy::shouldNotify(0x811C9DC5u, 0, 0, 5000, 300));
-}
-
 void test_log_record_format() { // SPEC 94
     char buf[160];
     size_t n = formatLogRecord(buf, sizeof buf, 1755763200, LogEvent::AlertStart,
@@ -216,8 +187,6 @@ int main() {
     RUN_TEST(test_json_rejects_overflow_and_overlong_name);
     RUN_TEST(test_json_rejects_future_schema_and_malformed_sections);
     RUN_TEST(test_validation_rejects_stale_range_and_location_shape);
-    RUN_TEST(test_fingerprint_stability);
-    RUN_TEST(test_startup_policy_cooldown);
     RUN_TEST(test_log_record_format);
     return UNITY_END();
 }

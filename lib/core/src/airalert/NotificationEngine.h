@@ -32,11 +32,11 @@ public:
     void setConfig(const Config& c) { cfg_ = c; }
     void setApiStale(bool stale) { apiStale_ = stale; }
 
-    // How a Started/Ended event is voiced (SPEC 26-28):
-    //   Normal - full pattern; Short - one startup pulse (boot into an
-    //   already-active alert); Silent - state bookkeeping only, no sound
-    //   (reboot-loop cooldown, partial without siren, air-raid colour change).
-    enum class StartupMode : uint8_t { Normal, Short, Silent };
+    // How a Started/Ended event is voiced:
+    //   Normal - full pattern; Silent - state bookkeeping only, no sound
+    //   (alert already active at boot - SPEC 26, partial without siren,
+    //   air-raid colour change).
+    enum class StartupMode : uint8_t { Normal, Silent };
     void onEngineEvent(const EngineEvent& ev, StartupMode mode, uint32_t nowMs);
 
     void muteShort(uint32_t nowMs) { doMute(MuteState::Scope::UntilClear, nowMs); }
@@ -85,7 +85,6 @@ private:
             case Signal::Escalation: return p.start; // SPEC 35
             case Signal::End: return p.end;
             case Signal::Reminder: return p.reminder;
-            case Signal::StartupActive: return startupPattern();
             case Signal::ManualTest: return Pattern{true, cfg_.manualTestMs, 0, 1};
         }
         return Pattern{};
@@ -112,17 +111,13 @@ inline void NotificationEngine::onEngineEvent(const EngineEvent& ev, StartupMode
         case AlertEvent::Started:
             activeMask_ |= bit;
             lastReminderAt_[static_cast<uint8_t>(ev.type)] = nowMs;
-            if (!p.enabled || mode == StartupMode::Silent) break; // SPEC 28
-            if (mode == StartupMode::Short) {
-                queue_.push({Signal::StartupActive, ev.type, p.priority}); // SPEC 26
-            } else {
-                queue_.push({Signal::Start, ev.type, p.priority});
-                // SPEC 47: Start may preempt a playing Reminder
-                if (playing_ && NotificationQueue::canPreempt(
-                        {Signal::Start, ev.type, p.priority}, current_)) {
-                    sched_.stop();
-                    playing_ = false;
-                }
+            if (!p.enabled || mode == StartupMode::Silent) break; // SPEC 26
+            queue_.push({Signal::Start, ev.type, p.priority});
+            // SPEC 47: Start may preempt a playing Reminder
+            if (playing_ && NotificationQueue::canPreempt(
+                    {Signal::Start, ev.type, p.priority}, current_)) {
+                sched_.stop();
+                playing_ = false;
             }
             break;
         case AlertEvent::Escalated: // SPEC 35
