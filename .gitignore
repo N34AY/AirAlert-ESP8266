@@ -10,3 +10,5 @@ secrets.json
 __pycache__/
 .serena/
 .venv/
+
+.DS_Store
