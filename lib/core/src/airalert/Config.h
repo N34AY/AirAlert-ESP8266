@@ -31,7 +31,11 @@ struct AppConfig {
     bool notifyAdditionalLocation = false;
     bool remindersWhenStale = false;
 
-    // relay (SPEC 39, 41-42, 54)
+    // relay (SPEC 39, 41-42, 54). single: one relay on D5 holds the siren ON
+    // by level; otherwise two relays pulse the START (D5) / STOP (D6) buttons.
+    // Default stays two-relay: a pulse-wired siren read as level mode would
+    // get START held and never see STOP.
+    bool relaySingle = false;
     bool relayActiveHigh = true;
     uint32_t relayMaxOnMs = 30000;
     uint16_t relayTestMs = 600;
@@ -159,6 +163,7 @@ inline void configToJson(const AppConfig& c, JsonDocument& d) {
     a["notify_additional_location"] = c.notifyAdditionalLocation;
     a["reminders_when_stale"] = c.remindersWhenStale;
     JsonObject r = d["relay"].to<JsonObject>();
+    r["single"] = c.relaySingle;
     r["active_high"] = c.relayActiveHigh;
     r["max_on_ms"] = c.relayMaxOnMs;
     r["test_ms"] = c.relayTestMs;
@@ -217,7 +222,8 @@ inline ConfigError configFromJson(JsonVariantConst d, AppConfig& c) {
         !overlayBool(a["reminders_when_stale"], c.remindersWhenStale))
         return ConfigError::BadPattern;
     JsonVariantConst r = d["relay"];
-    if (!overlayBool(r["active_high"], c.relayActiveHigh)) return ConfigError::BadRelayLimit;
+    if (!overlayBool(r["single"], c.relaySingle) ||
+        !overlayBool(r["active_high"], c.relayActiveHigh)) return ConfigError::BadRelayLimit;
     if (!overlayUnsigned(r["max_on_ms"], c.relayMaxOnMs)) return ConfigError::BadRelayLimit;
     if (!overlayUnsigned(r["test_ms"], c.relayTestMs)) return ConfigError::BadTestMs;
     if (!overlayUnsigned(d["mute"]["snooze_min"], c.snoozeMinutes) ||

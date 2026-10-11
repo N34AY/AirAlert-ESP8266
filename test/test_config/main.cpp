@@ -19,6 +19,7 @@ void test_roundtrip_preserves_everything() {
     strncpy(c.deviceName, "Siren-Irpin", sizeof c.deviceName);
     c.pollIntervalSec = 20;
     c.partialSiren = false;
+    c.relaySingle = true;
     c.relayActiveHigh = false;
     c.relayMaxOnMs = 45000;
     c.selectedCount = 1;
@@ -36,6 +37,7 @@ void test_roundtrip_preserves_everything() {
     TEST_ASSERT_EQUAL_STRING("Siren-Irpin", r.deviceName);
     TEST_ASSERT_EQUAL(20, r.pollIntervalSec);
     TEST_ASSERT_FALSE(r.partialSiren);
+    TEST_ASSERT_TRUE(r.relaySingle);
     TEST_ASSERT_FALSE(r.relayActiveHigh);
     TEST_ASSERT_EQUAL_UINT32(45000, r.relayMaxOnMs);
     TEST_ASSERT_TRUE(r.alertIndicatorSteady);
@@ -60,6 +62,7 @@ void test_partial_old_config_keeps_defaults() { // SPEC 90: N+1 reads N
     TEST_ASSERT_EQUAL(90, c.apiStaleAfterSec);        // default kept
     TEST_ASSERT_EQUAL(2, c.schemaVersion);            // migrated
     TEST_ASSERT_EQUAL(0, c.selectedCount);            // no implicit Kyiv subscription
+    TEST_ASSERT_FALSE(c.relaySingle);                 // pulse-wired sirens stay two-relay
     TEST_ASSERT_TRUE(c.profiles[0].enabled);
 }
 

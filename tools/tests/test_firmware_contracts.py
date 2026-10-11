@@ -100,18 +100,23 @@ class FirmwareBoundaryContractTests(unittest.TestCase):
         self.assertIn("safetyTimer_.once_ms", source)
         self.assertIn("void emergencyOff()", source)
         body = source[source.index("void emergencyOff()"):source.index("void apply(")]
-        self.assertIn("pulse(stopPin_, ", body)
+        self.assertIn("press(false, ", body)
 
     def test_siren_is_driven_by_start_and_stop_pulses(self):
         source = (ROOT / "src/hardware/RelayController.h").read_text()
-        apply = source[source.index("void apply("):source.index("void pulse(")]
+        apply = source[source.index("void apply("):source.index("void press(")]
+        press = source[source.index("void press("):source.index("void pulse(")]
 
-        # latching siren: a state change is a timed button press, never a level
-        self.assertIn("pulse(on ? startPin_ : stopPin_, ", apply)
+        self.assertIn("press(on, ", apply)
+        # latching siren (two relays): a state change is a timed button press
+        self.assertIn("if (!level_) return pulse(start ? startPin_ : stopPin_, ", press)
         self.assertIn("pulseTimer_.once_ms", source)
-        # a config save mid-pattern must stop a latched siren
+        # single relay: D5 holds the level, and the change is still logged
+        self.assertIn("queuePress(", press)
+        self.assertIn("digitalWrite(startPin_, start == activeHigh_", press)
+        # a config save mid-pattern must stop the siren
         begin = source[source.index("void begin("):source.index("void tick(")]
-        self.assertIn("if (wasOn) pulse(stopPin_, ", begin)
+        self.assertIn("if (wasOn) press(false, ", begin)
 
     def test_single_relay_test_cannot_leave_the_siren_unbounded(self):
         source = (ROOT / "src/hardware/RelayController.h").read_text()

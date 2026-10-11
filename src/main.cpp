@@ -28,8 +28,8 @@
 using namespace airalert;
 
 namespace pins {
-constexpr uint8_t SIREN_START = 14; // D5 — relay 1, pulse = START button (SPEC 61, 64)
-constexpr uint8_t SIREN_STOP = 12;  // D6 — relay 2, pulse = STOP button
+constexpr uint8_t SIREN_START = 14; // D5 — relay 1: START button, or the siren itself in single-relay mode (SPEC 61, 64)
+constexpr uint8_t SIREN_STOP = 12;  // D6 — relay 2, pulse = STOP button (unused in single-relay mode)
 constexpr uint8_t MUTE = 5;         // D1 (D6 is taken by the STOP relay)
 constexpr uint8_t TEST = 13;        // D7
 constexpr uint8_t BUILTIN_LED = 2;  // D4, inverted — SYSTEM indicator
@@ -144,7 +144,7 @@ static void applyConfig() {
     for (uint8_t i = 0; i < kAlertTypeCount; ++i)
         notify.setProfile(static_cast<AlertType>(i), appCfg.profiles[i]);
     relay.begin(pins::SIREN_START, pins::SIREN_STOP, appCfg.relayActiveHigh,
-                appCfg.relayMaxOnMs);
+                appCfg.relayMaxOnMs, appCfg.relaySingle);
     backoff.setConfig({appCfg.pollIntervalSec * 1000u, 120000, 60000, 300000, 10});
     health.setConfig({appCfg.apiStaleAfterSec * 1000u});
     builder.setSelected(appCfg.selected, appCfg.selectedCount);
@@ -503,13 +503,15 @@ void setup() {
         Serial.println("[API] DEVICE NOT READY: no API token (SPEC 162)");
 }
 
-// Physical START/STOP presses -> event log, so the Web UI journal shows them.
+// Physical START/STOP presses (single relay: ON/OFF) -> event log, so the
+// Web UI journal shows them.
 static void logRelayPresses() {
     RelayController::Press p;
     uint8_t dropped;
     char detail[48];
     while (relay.popPress(p, dropped)) {
-        snprintf(detail, sizeof detail, "relay=%s reason=%s", p.start ? "start" : "stop", p.why);
+        const char* what = relay.levelMode() ? (p.start ? "on" : "off") : (p.start ? "start" : "stop");
+        snprintf(detail, sizeof detail, "relay=%s reason=%s", what, p.why);
         eventLog.log(LogEvent::RelayPress, detail);
     }
     if (dropped) {

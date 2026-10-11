@@ -2,10 +2,13 @@
 // Sole owner of the siren relay GPIOs (SPEC 38-42, 172). Everything routes
 // through RelayGuard, so no caller can hold the siren ON past the safety limit.
 //
-// Two-relay module wired in parallel with the siren controller's buttons:
-// START relay (D5) and STOP relay (D6). The siren latches, so a state change is
-// a short "button press" pulse on the matching relay, never a held level.
-// on_ is the latched siren state as we last commanded it.
+// Two wirings, picked by config (relay.single):
+// - pulse (two relays, default): wired in parallel with the siren controller's
+//   buttons, START relay (D5) and STOP relay (D6). The siren latches, so a
+//   state change is a short "button press" pulse on the matching relay.
+// - level (one relay): D5 switches the siren directly and is held for the
+//   whole ON phase; D6 is left alone.
+// on_ is the siren state as we last commanded it.
 //
 // Every press is queued as a Press so loop() can write it to the event log:
 // presses also come from Ticker callbacks, where flash I/O is not allowed.
@@ -20,24 +23,26 @@ public:
     static constexpr uint32_t kPulseMs = 300; // simulated button press
 
     struct Press {
-        bool start;      // START relay, else STOP
+        bool start;      // START press (level mode: ON), else STOP (OFF)
         const char* why; // string literal: pattern, mute, safety, test, ...
     };
 
-    void begin(uint8_t startPin, uint8_t stopPin, bool activeHigh, uint32_t maxOnMs) {
+    void begin(uint8_t startPin, uint8_t stopPin, bool activeHigh, uint32_t maxOnMs,
+               bool level) {
         safetyTimer_.detach();
         pulseTimer_.detach();
         // begin() re-runs on every config save, possibly mid-pattern: a siren
         // latched ON must be stopped, or it would howl with no deadline armed.
         const bool wasOn = on_;
-        if (startPin_ != 255) { // release pins with the OLD polarity first
-            digitalWrite(startPin_, activeHigh_ ? LOW : HIGH);
-            digitalWrite(stopPin_, activeHigh_ ? LOW : HIGH);
+        if (startPin_ != 255) { // release pins with the OLD polarity and mode first
+            release(startPin_);
+            if (!level_) release(stopPin_);
         }
         pulsePin_ = 255;
         startPin_ = startPin;
         stopPin_ = stopPin;
         activeHigh_ = activeHigh;
+        level_ = level;
         maxOnMs_ = maxOnMs;
         asyncTrip_ = false;
         asyncOffNeedsLog_ = false;
@@ -45,15 +50,19 @@ public:
         guard_.tick(false, 0);
         guard_.setLimit(maxOnMs);
         release(startPin_);
-        release(stopPin_);
         pinMode(startPin_, OUTPUT);
-        pinMode(stopPin_, OUTPUT);
         release(startPin_);
-        release(stopPin_);
+        if (!level_) {
+            release(stopPin_);
+            pinMode(stopPin_, OUTPUT);
+            release(stopPin_);
+        } else {
+            pinMode(stopPin_, INPUT); // unused: stop driving a leftover STOP relay
+        }
         // The cached state must say OFF: a stale on_=true would make the next
         // apply(true) a no-op - siren dead AND the safety deadline never armed.
         on_ = false;
-        if (wasOn) pulse(stopPin_, "reconfig");
+        if (wasOn) press(false, "reconfig"); // level mode: already released above
     }
 
     // Feed the desired state every loop; the guard decides what the siren gets.
@@ -78,22 +87,23 @@ public:
         tripEvent_ = false;
         guard_.tick(false, 0); // release guard state
         on_ = false;
-        if (pulsePin_ != stopPin_) pulse(stopPin_, why); // preempts a START press
+        if (level_ || pulsePin_ != stopPin_) press(false, why); // preempts a START press
         Serial.printf("[RELAY] STOP (forced: %s)\n", why);
     }
 
     // Commissioning: press ONE button by hand (SPEC 54). START arms the
     // safety deadline, so a siren started this way still stops on its own.
     void testPulse(bool start) {
-        pulse(start ? startPin_ : stopPin_, "test");
+        press(start, "test");
         if (start)
             safetyTimer_.once_ms(maxOnMs_, safetyTimeout, this);
         else if (!on_) // a playing pattern keeps its own deadline
             safetyTimer_.detach();
-        Serial.printf("[RELAY] TEST %s pulse\n", start ? "START" : "STOP");
+        Serial.printf("[RELAY] TEST %s\n", start ? "START" : "STOP");
     }
 
     bool isOn() const { return on_; }
+    bool levelMode() const { return level_; }
     bool safetyTripped() const { return asyncTrip_ || guard_.tripped(); }
     bool consumeSafetyTrip() {
         const bool event = tripEvent_;
@@ -118,7 +128,7 @@ private:
     // SYS-context deadline: it remains effective while loop() is blocked.
     void emergencyOff() {
         on_ = false;
-        if (pulsePin_ != stopPin_) pulse(stopPin_, "safety");
+        if (level_ || pulsePin_ != stopPin_) press(false, "safety");
         asyncTrip_ = true;
         asyncOffNeedsLog_ = true;
         tripEvent_ = true;
@@ -129,13 +139,21 @@ private:
         // one press at a time: the change is retried on the next tick
         if (pulsePin_ != 255) return;
         on_ = on;
-        pulse(on ? startPin_ : stopPin_, "pattern");
+        press(on, "pattern");
         if (on)
             safetyTimer_.once_ms(maxOnMs_, safetyTimeout, this);
         else
             safetyTimer_.detach();
         // commissioning aid (SPEC 141): every physical press is visible
         Serial.printf("[RELAY] %s\n", on ? "START" : "STOP");
+    }
+
+    // Level mode holds D5 for as long as the siren should sound; pulse mode
+    // taps the matching button.
+    void press(bool start, const char* why) {
+        if (!level_) return pulse(start ? startPin_ : stopPin_, why);
+        queuePress({start, why});
+        digitalWrite(startPin_, start == activeHigh_ ? HIGH : LOW);
     }
 
     // Press a button; the release runs from a timer so loop() never blocks.
@@ -174,6 +192,7 @@ private:
     volatile uint8_t pulsePin_ = 255;
     uint32_t maxOnMs_ = 30000;
     bool activeHigh_ = true;
+    bool level_ = false;
     volatile bool on_ = false;
     volatile bool asyncTrip_ = false;
     volatile bool asyncOffNeedsLog_ = false;

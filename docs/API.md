@@ -26,8 +26,8 @@
 | POST | Ефект |
 |---|---|
 | /mute, /unmute | глушіння сирени (тривога лишається активною) |
-| /test/relay | цикл: імпульс СТАРТ (D5), через config.relay.test_ms — імпульс СТОП (D6) |
-| /test/relay?relay=start\|stop | один імпульс на реле СТАРТ або СТОП (409, якщо грає патерн) |
+| /test/relay | цикл: імпульс СТАРТ (D5), через config.relay.test_ms — імпульс СТОП (D6); при `relay.single` — D5 УВІМК на test_ms |
+| /test/relay?relay=start\|stop | один імпульс на реле СТАРТ або СТОП (409, якщо грає патерн); при `relay.single` — D5 УВІМК (до ВИМК або safety-ліміту) / ВИМК |
 | /relay/off | ручне вимкнення: стоп патернів + реле OFF |
 | /reboot | перезавантаження |
 | /wifi/forget | скинути Wi-Fi → provisioning AP |

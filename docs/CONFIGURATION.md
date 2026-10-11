@@ -13,6 +13,7 @@
 | alerts.notify_escalation | true | — | сигнал при посиленні часткової тривоги до повної |
 | alerts.notify_additional_location | false | — | сигнал при охопленні ще однієї вибраної локації |
 | alerts.reminders_when_stale | false | — | дозволити нагадування за застарілими даними API |
+| relay.single | false | — | `false` — 2 реле, імпульси СТАРТ (D5) / СТОП (D6) на пульт сирени; `true` — 1 реле D5 вмикає сирену напряму і тримається весь час звучання |
 | relay.active_high | true | — | полярність (визначити при commissioning!) |
 | relay.max_on_ms | 30000 | 1000–60000 | safety-ліміт безперервного УВІМК |
 | relay.test_ms | 600 | 100–10000 | пауза між СТАРТ і СТОП у тест-циклі (фактично ≥ 600) |
