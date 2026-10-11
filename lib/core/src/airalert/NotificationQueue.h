@@ -6,7 +6,7 @@
 namespace airalert {
 
 // SPEC 34: siren-relevant events entering the queue.
-enum class Signal : uint8_t { Start, Escalation, Reminder, End, StartupActive, ManualTest };
+enum class Signal : uint8_t { Start, Escalation, Reminder, End, ManualTest };
 
 struct Notification {
     Signal signal = Signal::Start;
@@ -59,7 +59,6 @@ public:
             case Signal::ManualTest: return 4;
             case Signal::Start:
             case Signal::Escalation: return 3;
-            case Signal::StartupActive:
             case Signal::End: return 2;
             case Signal::Reminder: return 1;
         }

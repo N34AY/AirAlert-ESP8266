@@ -153,7 +153,7 @@ void test_boot_into_active_alert() { // SPEC 26: first snapshot already active
     AlertEngine e;
     EngineEvent ev[8];
     size_t n = apply(e, snap(Coverage::Full), ev);
-    TEST_ASSERT_EQUAL(1, n); // engine reports Started; startup policy decides SHORT
+    TEST_ASSERT_EQUAL(1, n); // engine reports Started; PreexistingAlerts silences it
     TEST_ASSERT_TRUE(e.anyActive());
 }
 

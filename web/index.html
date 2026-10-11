@@ -39,6 +39,10 @@ button.btn.warn{background:#a35b18}button.btn.bad{background:#a33030}button.btn.
 #login .card{width:320px}
 .hide{display:none!important}
 .warnbox{background:#3a2414;border:1px solid #7a5220;border-radius:8px;padding:10px;margin:10px 0;font-size:13.5px}
+.tip{position:relative;display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;margin-left:5px;border-radius:50%;border:1px solid var(--mut);color:var(--mut);font:italic 700 11px/1 Georgia,serif;cursor:help;vertical-align:-2px}
+.tip:hover,.tip:focus{color:var(--tx);border-color:var(--acc);outline:0}
+.tip>span{display:none;position:absolute;left:50%;top:22px;transform:translateX(-50%);width:min(300px,calc(100vw - 32px));background:#232a32;border:1px solid #333c46;border-radius:8px;padding:9px 11px;color:var(--tx);font:13px/1.45 system-ui,sans-serif;z-index:5;box-shadow:0 4px 14px #0008;text-align:left}
+.tip:hover>span,.tip:focus>span{display:block}
 </style>
 </head>
 <body>
@@ -99,32 +103,36 @@ button.btn.warn{background:#a35b18}button.btn.bad{background:#a33030}button.btn.
 <section id="t-relay" class="hide">
 <div class="card">
 <h2>Реле / Сирена</h2>
-<div class="warnbox">⚠ УВАГА: «Тест реле» фізично вмикає реле і все, що до нього підключене.</div>
-<label>Полярність</label>
+<div class="warnbox">⚠ УВАГА: тести фізично натискають кнопки сирени. Реле 1 (D5) — СТАРТ, реле 2 (D6) — СТОП.</div>
+<label>Полярність<span class="tip" tabindex="0">i<span>Яким рівнем на піні (D5/D6) модуль реле вмикається.<br><b>ACTIVE HIGH</b> — реле спрацьовує від високого рівня (3.3 В).<br><b>ACTIVE LOW</b> — реле спрацьовує від низького рівня (0 В, «на землю»). Так працює більшість китайських модулів реле з оптопарою.<br>Ознака неправильної полярності: реле клацають і світяться у спокої, а під час тривоги навпаки відпускаються.</span></span></label>
 <select id="r_ah"><option value="1">ACTIVE HIGH</option><option value="0">ACTIVE LOW</option></select>
 <label>Макс. безперервно УВІМК, мс (1000–60000)</label>
 <input id="r_max" type="number" min="1000" max="60000">
-<label>Тривалість тесту, мс (100–1000)</label>
-<input id="r_test" type="number" min="100" max="1000">
+<label>Тест-цикл: пауза між СТАРТ і СТОП, мс (600–10000)</label>
+<input id="r_test" type="number" min="600" max="10000">
 <div class="row" style="margin-top:12px">
 <button class="btn" onclick="saveConfig()">Зберегти</button>
-<button class="btn warn" onclick="testRelay()">⚡ Тест реле</button>
+<button class="btn warn" onclick="testRelay()">⚡ Тест: СТАРТ → СТОП</button>
+</div>
+<div class="row" style="margin-top:8px">
+<button class="btn warn" onclick="testRelay('start')">▶ Імпульс СТАРТ (реле 1, D5)</button>
+<button class="btn" onclick="testRelay('stop')">■ Імпульс СТОП (реле 2, D6)</button>
 </div>
 </div>
 <div class="card">
 <h2>Індикація тривоги (вихід D0)</h2>
 <p class="mut">LED або реле з лампою: горить, поки триває будь-яка тривога.</p>
 <div class="row"><label><input type="checkbox" id="l_steady"> Стійкий сигнал без блимань (для реле/лампи)</label></div>
-<label>Полярність виходу</label>
+<label>Полярність виходу<span class="tip" tabindex="0">i<span>Яким рівнем на виході D0 вмикається LED/лампа тривоги.<br><b>ACTIVE HIGH</b> — світлодіод підключений від D0 через резистор на GND: світиться, коли на D0 3.3 В.<br><b>ACTIVE LOW</b> — світлодіод підключений від +3.3 В на D0, або D0 керує модулем реле, що спрацьовує від низького рівня.<br>Якщо LED світиться без тривоги і гасне під час неї, полярність неправильна.</span></span></label>
 <select id="l_ah"><option value="1">ACTIVE HIGH</option><option value="0">ACTIVE LOW</option></select>
-<button class="btn" onclick="saveConfig()">Зберегти</button>
+<div style="margin-top:12px"><button class="btn" onclick="saveConfig()">Зберегти</button></div>
 </div>
 <div class="card">
 <h2>Часткова тривога</h2>
 <div class="row"><label><input type="checkbox" id="p_act"> Враховувати часткову</label></div>
 <div class="row"><label><input type="checkbox" id="p_sir"> Сирена для часткової</label></div>
 <div class="row"><label><input type="checkbox" id="p_led"> LED для часткової</label></div>
-<button class="btn" onclick="saveConfig()">Зберегти</button>
+<div style="margin-top:12px"><button class="btn" onclick="saveConfig()">Зберегти</button></div>
 </div>
 </section>
 
@@ -267,13 +275,20 @@ async function saveLocs(){try{const locs=selected.filter(u=>cat.some(x=>x.uid===
 async function saveToken(){const t=$("newtok").value.trim();if(!t)return;
  try{await put("/api/v1/secrets/api-token",{token:t});$("newtok").value="";alert("Ключ збережено");loadTok()}catch(e){alert("Помилка: "+e.message)}}
 async function loadTok(){try{const s=await get("/api/v1/status");$("tokstate").textContent=s.api.token_present?"налаштовано":"ВІДСУТНІЙ"}catch(e){}}
-async function testRelay(){if(!confirm("Фізично увімкнути реле на "+$("r_test").value+" мс?"))return;
- try{await post("/api/v1/test/relay")}catch(e){alert("Помилка: "+e.message)}}
+async function testRelay(ch){
+ const q=ch==="start"?"Натиснути СТАРТ (реле 1)? Сирена звучатиме до імпульсу СТОП або safety-ліміту.":
+  ch==="stop"?null:"Натиснути СТАРТ, а через "+Math.max(+$("r_test").value,600)+" мс — СТОП?";
+ if(q&&!confirm(q))return;
+ try{await post("/api/v1/test/relay"+(ch?"?relay="+ch:""))}catch(e){alert("Помилка: "+e.message)}}
 async function relayOff(){try{await post("/api/v1/relay/off");refresh()}catch(e){}}
+const PRESS_WHY={pattern:"сигнал тривоги / тест-цикл",mute:"кнопка MUTE",safety:"safety-ліміт",test:"ручний тест реле",web:"«Реле ВИМК» у Web UI",ota:"оновлення прошивки",locations:"зміна локацій",reconfig:"збереження налаштувань"};
+function relayPressText(d){const m={};(d||"").split(" ").forEach(kv=>{const i=kv.indexOf("=");if(i>0)m[kv.slice(0,i)]=kv.slice(i+1)});
+ if(m.dropped)return "не записано ще "+m.dropped+" натискань (переповнення черги)";
+ return "натиснуто реле "+(m.relay==="start"?"СТАРТ":"СТОП")+" ("+(PRESS_WHY[m.reason]||m.reason)+")"}
 async function loadLog(){try{const t=await get("/api/v1/events?ts="+Date.now());
  $("logbody").textContent=t.trim().split("\n").reverse().map(l=>{try{const r=JSON.parse(l);
   const ts=r.ts?new Date(r.ts*1000).toLocaleString("uk-UA",{timeZone:"Europe/Kyiv"}):"(до синхр. часу)";
-  return `${ts}  ${r.event}${r.detail?"  "+r.detail:""}`}catch(e){return l}}).join("\n")||"Журнал ще порожній"}catch(e){$("logbody").textContent="Не вдалося завантажити журнал: "+e.message}}
+  return `${ts}  ${r.event}${r.detail?"  "+r.detail:""}${r.event==="RELAY_PRESS"?"  — "+relayPressText(r.detail):""}`}catch(e){return l}}).join("\n")||"Журнал ще порожній"}catch(e){$("logbody").textContent="Не вдалося завантажити журнал: "+e.message}}
 async function otaUpload(){const f=$("otafile").files[0];
  if(!f){$("otamsg").textContent="Виберіть файл";return}
  if(!confirm("Прошити "+f.name+" ("+Math.round(f.size/1024)+" КБ)?"))return;

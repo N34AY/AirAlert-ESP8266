@@ -15,10 +15,9 @@
 | alerts.reminders_when_stale | false | — | дозволити нагадування за застарілими даними API |
 | relay.active_high | true | — | полярність (визначити при commissioning!) |
 | relay.max_on_ms | 30000 | 1000–60000 | safety-ліміт безперервного УВІМК |
-| relay.test_ms | 600 | 100–1000 | тривалість тесту |
+| relay.test_ms | 600 | 100–10000 | пауза між СТАРТ і СТОП у тест-циклі (фактично ≥ 600) |
 | mute.snooze_min | 15 | 1–240 | довгий тиск MUTE |
 | mute.all_types | false | — | mute глушить і нові типи загроз |
-| startup.cooldown_sec | 300 | — | анти-reboot-loop пауза |
 | locations[] | порожньо | 1–16 у робочому режимі | вибрані користувачем локації; без них API не опитується |
 | profiles.<type> | SPEC 45 | on/off ≤60с, repeat ≤20 | патерни start/end/reminder + пріоритет |
 

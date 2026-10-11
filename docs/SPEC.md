@@ -794,66 +794,39 @@ Relay OFF має бути встановлений **до будь-якої ме
 Обрана політика:
 
 ```text
-SHORT_NOTIFICATION
+SILENT
 ```
 
-Якщо після reboot API показує активну тривогу:
+Якщо після ввімкнення / reboot API показує активну тривогу:
 
 ```text
 LED = ACTIVE
 ```
 
-та виконується короткий startup pattern.
+але сирена **не** вмикається: тривога почалась до того, як пристрій почав
+спостереження (можливо, годину тому), і сигнал «тривога» у цей момент
+вводить в оману. Сирена реагує лише на переходи, що відбулися вже після
+старту: новий тип загрози, ескалація, відбій.
 
-Не запускати повний START pattern.
+Те саме — після зміни вибраних локацій (стан рушія скидається).
+
+Тип вважається «вже активним», доки він присутній у кожному знімку від
+першого; щойно він зник із відповіді API, наступна поява — справжній старт.
+Працює й при `start_confirmations > 1`.
 
 ---
 
 # 27. Startup pattern
 
-Default:
-
-```text
-ON  1000 ms
-OFF
-```
-
-Один раз.
-
-Повинен бути налаштовуваним.
+Видалено (раніше — короткий імпульс 1000 мс при старті в активну тривогу).
 
 ---
 
 # 28. Захист від reboot loop
 
-Необхідно зберігати fingerprint останніх активних alert.
-
-Якщо пристрій:
-
-```text
-boot
-short siren
-crash
-boot
-short siren
-crash
-...
-```
-
-не можна нескінченно активувати сирену.
-
-Зберігати:
-
-```text
-last_startup_notification
-active_alert_fingerprint
-```
-
-та встановити cooldown, наприклад:
-
-```text
-5 minutes
-```
+Окремий механізм не потрібен: при старті сирена не вмикається взагалі, тож
+reboot-loop не може її смикати. Fingerprint / cooldown (`/state.json`,
+`startup.cooldown_sec`) видалено.
 
 ---
 
@@ -993,7 +966,6 @@ ALERT_ESCALATED
 ALERT_ACTIVE
 ALERT_REMINDER
 ALERT_ENDED
-STARTUP_ACTIVE
 MANUAL_TEST
 MANUAL_MUTE
 ```
@@ -2901,7 +2873,7 @@ end_confirmations = 2
 partial_enabled = true
 partial_siren = true
 
-startup_active_mode = SHORT
+startup_active_mode = SILENT
 
 relay_max_continuous_on_ms = 30000
 
@@ -4011,7 +3983,7 @@ partial toggle works
 start works
 reminder works
 end works
-startup SHORT works
+startup into active alert is SILENT
 stale does not generate false clear
 ```
 

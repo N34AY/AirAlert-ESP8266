@@ -12,8 +12,8 @@
 #include "airalert/BackoffPolicy.h"
 #include "airalert/Config.h"
 #include "airalert/NotificationEngine.h"
+#include "airalert/PreexistingAlerts.h"
 #include "airalert/SnapshotBuilder.h"
-#include "airalert/StartupPolicy.h"
 #include "alerts/AlertsClient.h"
 #include "alerts/LocationCatalog.h"
 #include "config/ConfigStore.h"
@@ -23,14 +23,14 @@
 #include "hardware/Indication.h"
 #include "network/WifiService.h"
 #include "storage/EventLogStore.h"
-#include "storage/StateStore.h"
 #include "web/WebUi.h"
 
 using namespace airalert;
 
 namespace pins {
-constexpr uint8_t RELAY = 14;       // D5 (SPEC 61, 64)
-constexpr uint8_t MUTE = 12;        // D6
+constexpr uint8_t SIREN_START = 14; // D5 — relay 1, pulse = START button (SPEC 61, 64)
+constexpr uint8_t SIREN_STOP = 12;  // D6 — relay 2, pulse = STOP button
+constexpr uint8_t MUTE = 5;         // D1 (D6 is taken by the STOP relay)
 constexpr uint8_t TEST = 13;        // D7
 constexpr uint8_t BUILTIN_LED = 2;  // D4, inverted — SYSTEM indicator
 constexpr uint8_t ALERT_OUT = 16;   // D0 — alert LED or indication relay
@@ -39,8 +39,6 @@ constexpr uint8_t ALERT_OUT = 16;   // D0 — alert LED or indication relay
 static SecretsStore secrets;
 static AppConfig appCfg;
 static ConfigStore configStore;
-static StateStore stateStore;
-static PersistedState pstate;
 static EventLogStore eventLog;
 static AlertsClient client;
 static AlertEngine engine;
@@ -93,7 +91,7 @@ static bool apiReady() {
 }
 
 static void muteNow(bool longPress) {
-    relay.forceOff(); // Invariant 4: relay OFF before anything else
+    relay.forceOff("mute"); // Invariant 4: relay OFF before anything else
     if (longPress) notify.muteLong(millis());
     else notify.muteShort(millis());
     eventLog.log(LogEvent::Mute, longPress ? "scope=snooze" : "scope=until_clear");
@@ -112,19 +110,19 @@ static Ticker otaWatchdog;
 static void prepareOta() { // Invariant 8
     otaInProgress = true;
     notify.stopAll();
-    relay.forceOff();
+    relay.forceOff("ota");
     otaWatchdog.once_ms(kOtaDeadlineMs, [] { ESP.restart(); });
 }
 
 static void finishFailedOta() {
     otaWatchdog.detach();
-    relay.forceOff();
+    relay.forceOff("ota");
     otaInProgress = false;
 }
 
 static void refreshLocations() {
     activeView = ActiveLocationView{}; // drop rows for locations no longer selected
-    relay.forceOff();
+    relay.forceOff("locations");
     notify.resetAlertState();
     engine.reset();
     builder.reset();
@@ -140,10 +138,13 @@ static void applyConfig() {
                       appCfg.partialActive});
     notify.setMuteConfig({appCfg.snoozeMinutes * 60000u, appCfg.muteAllAlertTypes});
     notify.setConfig({appCfg.notifyEscalation, appCfg.notifyAdditionalLocation,
-                      appCfg.remindersWhenStale, appCfg.relayTestMs});
+                      appCfg.remindersWhenStale,
+                      // START and STOP presses must be audibly separate clicks
+                      std::max<uint16_t>(appCfg.relayTestMs, 2 * RelayController::kPulseMs)});
     for (uint8_t i = 0; i < kAlertTypeCount; ++i)
         notify.setProfile(static_cast<AlertType>(i), appCfg.profiles[i]);
-    relay.begin(pins::RELAY, appCfg.relayActiveHigh, appCfg.relayMaxOnMs);
+    relay.begin(pins::SIREN_START, pins::SIREN_STOP, appCfg.relayActiveHigh,
+                appCfg.relayMaxOnMs);
     backoff.setConfig({appCfg.pollIntervalSec * 1000u, 120000, 60000, 300000, 10});
     health.setConfig({appCfg.apiStaleAfterSec * 1000u});
     builder.setSelected(appCfg.selected, appCfg.selectedCount);
@@ -169,27 +170,23 @@ static const char* eventName(AlertEvent e) {
     }
 }
 
+static PreexistingAlerts preexisting; // SPEC 26
+
 // Shared by the real poller and the dev `sim` command.
 static void applyAndNotify(const AlertEngine::Snapshot& snap, bool simulated) {
-    const bool firstSync = !engine.synced(); // SPEC 26
-
-    auto startupMode = NotificationEngine::StartupMode::Normal;
-    if (firstSync) { // SPEC 26-28
-        const uint32_t fp = StartupPolicy::fingerprint(snap);
-        const int64_t nowUtc = time(nullptr) > 1600000000 ? time(nullptr) : 0;
-        startupMode = StartupPolicy::shouldNotify(
-                          fp, pstate.alertFingerprint, pstate.startupNotifAtUtc,
-                          nowUtc, appCfg.startupCooldownSec)
-                          ? NotificationEngine::StartupMode::Short
-                          : NotificationEngine::StartupMode::Silent;
-    }
+    preexisting.observe(snap, !engine.synced(), appCfg.partialActive);
 
     EngineEvent ev[8];
     const size_t n = engine.applySnapshot(snap, ev, 8); // SPEC 168
     for (size_t i = 0; i < n; ++i) {
-        Serial.printf("[ALARM] %s type=%s%s\n", eventName(ev[i].kind),
-                      alertTypeToString(ev[i].type), simulated ? " (SIM)" : "");
-        auto mode = startupMode;
+        const bool alreadyActive =
+            ev[i].kind == AlertEvent::Started && preexisting.consumeStart(ev[i].type);
+        Serial.printf("[ALARM] %s type=%s%s%s\n", eventName(ev[i].kind),
+                      alertTypeToString(ev[i].type),
+                      alreadyActive ? " (already active, silent)" : "",
+                      simulated ? " (SIM)" : "");
+        auto mode = alreadyActive ? NotificationEngine::StartupMode::Silent
+                                  : NotificationEngine::StartupMode::Normal;
         // SPEC 20: partial-only alert with siren disabled for partial
         if (ev[i].kind == AlertEvent::Started && !appCfg.partialSiren &&
             engine.status(ev[i].type).coverage == Coverage::Partial)
@@ -215,13 +212,6 @@ static void applyAndNotify(const AlertEngine::Snapshot& snap, bool simulated) {
                 break;
             default: break;
         }
-    }
-    if (n > 0 || firstSync) { // SPEC 96: persist only on change
-        pstate.alertFingerprint = StartupPolicy::fingerprint(snap);
-        if (n > 0 || startupMode == NotificationEngine::StartupMode::Short)
-            pstate.startupNotifAtUtc = time(nullptr);
-        if (!stateStore.save(pstate))
-            Serial.println("[STATE] persistence failed");
     }
 }
 
@@ -391,9 +381,14 @@ static void handleSerialLine(String line) {
     } else if (line == "unmute") {
         notify.unmute();
         eventLog.log(LogEvent::Unmute);
-    } else if (line == "test") { // SPEC 54
+    } else if (line == "test") { // SPEC 54: full START -> STOP cycle
         notify.manualTest(millis());
         eventLog.log(LogEvent::Test, "source=serial");
+    } else if (line == "test start" || line == "test stop") { // one relay
+        if (notify.playing()) { Serial.println("[RELAY] busy: a pattern is playing"); return; }
+        const bool start = line == "test start";
+        relay.testPulse(start);
+        eventLog.log(LogEvent::Test, start ? "source=serial relay=start" : "source=serial relay=stop");
     } else if (line == "status") {
         Serial.printf("[ST] wifi=%d ntp=%d active=%d muted=%d playing=%d relay=%d tripped=%d heap=%u\n",
                       wifi.online(), ntpSynced, engine.anyActive(), notify.muted(),
@@ -427,7 +422,7 @@ static void handleSerialLine(String line) {
         Serial.println("[SIM] dev build only");
 #endif
     } else if (line.length()) {
-        Serial.println("[CFG] setwifi|settoken|setpass|setmock|forgetwifi|show|restart|mute|unmute|test|status|config|log|sim");
+        Serial.println("[CFG] setwifi|settoken|setpass|setmock|forgetwifi|show|restart|mute|unmute|test [start|stop]|status|config|log|sim");
     }
 }
 
@@ -446,9 +441,10 @@ static void pollSerial() {
 
 // ---- boot -------------------------------------------------------------------
 void setup() {
-    // step 1: relay safe OFF before anything else (Invariant 3).
-    // Default polarity assumption until config loads (SPEC 39).
-    relay.begin(pins::RELAY, true, 30000);
+    // step 1: relay safe OFF (Invariant 3). The relay pins are left as reset
+    // inputs (high-Z = released) until applyConfig() knows the real polarity:
+    // driving them with a guessed one would press START+STOP together on an
+    // active-LOW module for as long as LittleFS takes to mount.
 
     Serial.begin(115200);
     Serial.println();
@@ -467,7 +463,6 @@ void setup() {
         Serial.println("[CFG] using default config");
     }
     applyConfig();
-    stateStore.load(pstate);
     eventLog.begin();
     eventLog.log(LogEvent::Boot, ESP.getResetReason().c_str());
 
@@ -506,6 +501,21 @@ void setup() {
 
     if (!secrets.apiToken.length())
         Serial.println("[API] DEVICE NOT READY: no API token (SPEC 162)");
+}
+
+// Physical START/STOP presses -> event log, so the Web UI journal shows them.
+static void logRelayPresses() {
+    RelayController::Press p;
+    uint8_t dropped;
+    char detail[48];
+    while (relay.popPress(p, dropped)) {
+        snprintf(detail, sizeof detail, "relay=%s reason=%s", p.start ? "start" : "stop", p.why);
+        eventLog.log(LogEvent::RelayPress, detail);
+    }
+    if (dropped) {
+        snprintf(detail, sizeof detail, "dropped=%u", dropped);
+        eventLog.log(LogEvent::RelayPress, detail);
+    }
 }
 
 static void updateLed(bool sirenOn) {
@@ -572,6 +582,7 @@ void loop() {
     relay.tick(siren, now);
     if (relay.consumeSafetyTrip())
         eventLog.log(LogEvent::RelaySafetyTrip); // Invariant 2 fired
+    logRelayPresses();
 
     updateLed(relay.isOn());
     led.tick(now);

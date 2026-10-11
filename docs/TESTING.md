@@ -14,7 +14,7 @@ pio test -e native -f test_engine   # один suite
 | test_pattern | патерни, guard, черга, mute, millis wrap (SPEC 137) |
 | test_api | ISO8601, backoff-драбина, stale (SPEC 8-10) |
 | test_parser | фікстури API, битий JSON (SPEC 138, 142) |
-| test_config | round-trip, валідація, міграція, reboot-loop guard |
+| test_config | round-trip, валідація, міграція, формат журналу |
 | test_notify | сирена-політика, mute-сценарії (SPEC 50-54) |
 | test_integration | наскрізні сценарії (SPEC 204) |
 

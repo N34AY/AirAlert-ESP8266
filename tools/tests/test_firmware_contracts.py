@@ -99,7 +99,50 @@ class FirmwareBoundaryContractTests(unittest.TestCase):
 
         self.assertIn("safetyTimer_.once_ms", source)
         self.assertIn("void emergencyOff()", source)
-        self.assertIn("digitalWrite(pin_", source[source.index("void emergencyOff()"):])
+        body = source[source.index("void emergencyOff()"):source.index("void apply(")]
+        self.assertIn("pulse(stopPin_, ", body)
+
+    def test_siren_is_driven_by_start_and_stop_pulses(self):
+        source = (ROOT / "src/hardware/RelayController.h").read_text()
+        apply = source[source.index("void apply("):source.index("void pulse(")]
+
+        # latching siren: a state change is a timed button press, never a level
+        self.assertIn("pulse(on ? startPin_ : stopPin_, ", apply)
+        self.assertIn("pulseTimer_.once_ms", source)
+        # a config save mid-pattern must stop a latched siren
+        begin = source[source.index("void begin("):source.index("void tick(")]
+        self.assertIn("if (wasOn) pulse(stopPin_, ", begin)
+
+    def test_single_relay_test_cannot_leave_the_siren_unbounded(self):
+        source = (ROOT / "src/hardware/RelayController.h").read_text()
+        body = source[source.index("void testPulse("):source.index("bool isOn()")]
+        web = (ROOT / "src/web/WebUi.cpp").read_text()
+        route = web[web.index('"/api/v1/test/relay"'):web.index('"/api/v1/relay/off"')]
+
+        # a hand-pressed START still gets the safety deadline
+        self.assertIn("safetyTimer_.once_ms", body)
+        # never interleave hand presses with a playing pattern
+        self.assertIn("d_.notify->playing()", route)
+        self.assertLess(route.index("playing()"), route.index("testPulse("))
+
+    def test_every_relay_press_reaches_the_event_log(self):
+        relay = (ROOT / "src/hardware/RelayController.h").read_text()
+        source = (ROOT / "src/main.cpp").read_text()
+        pulse = relay[relay.index("void pulse(uint8_t pin"):relay.index("void endPulse()")]
+        loop = source[source.index("void loop()"):]
+
+        self.assertIn("queuePress(", pulse)
+        self.assertIn("logRelayPresses();", loop)
+        self.assertIn("LogEvent::RelayPress", source)
+
+    def test_boot_never_touches_siren_relays(self):
+        source = (ROOT / "src/main.cpp").read_text()
+        setup = source[source.index("void setup()"):source.index("void loop()")]
+
+        # no STOP press on power-up, and no pin drive before the real polarity
+        # is known (applyConfig -> relay.begin)
+        self.assertNotIn("relay.forceOff();", setup)
+        self.assertNotIn("relay.begin(", setup)
 
 
 if __name__ == "__main__":

@@ -9,3 +9,6 @@ secrets.json
 *.elf
 __pycache__/
 .serena/
+.venv/
+
+.DS_Store

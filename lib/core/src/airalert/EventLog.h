@@ -11,7 +11,8 @@ enum class LogEvent : uint8_t {
     ApiOnline, ApiOffline, Api401, Api403, Api429, ApiParseError,
     AlertStart, AlertPartial, AlertFull, AlertEnd,
     Mute, Unmute, Test, ConfigChanged,
-    OtaStarted, OtaSuccess, OtaFailed, FactoryReset, RelaySafetyTrip
+    OtaStarted, OtaSuccess, OtaFailed, FactoryReset, RelaySafetyTrip,
+    RelayPress
 };
 
 inline const char* logEventName(LogEvent e) {
@@ -38,6 +39,7 @@ inline const char* logEventName(LogEvent e) {
         case LogEvent::OtaFailed: return "OTA_FAILED";
         case LogEvent::FactoryReset: return "FACTORY_RESET";
         case LogEvent::RelaySafetyTrip: return "RELAY_SAFETY_TRIP";
+        case LogEvent::RelayPress: return "RELAY_PRESS";
     }
     return "?";
 }
