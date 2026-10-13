@@ -33,15 +33,20 @@ public:
     }
     bool hasCachedSnapshot() const { return cache_.canAcceptNotModified(); }
 
-#ifdef AIRALERT_DEV
-    // Dev-only: poll a local/tunneled emulator instead of production.
-    // Set via serial `setmock <url>`; production builds compile this out.
+    // Poll a LAN proxy (proxy/README.md) or a dev emulator instead of
+    // production. Serial-only (`setapi <url>`), never via the Web UI (SPEC 133).
     void setMockUrl(const String& url) {
         if (url != mockUrl_) invalidateCache();
         mockUrl_ = url;
     }
     bool mocked() const { return mockUrl_.length() > 0; }
-#endif
+    // Selected location uids ("14,703"), sent to the proxy as ?regions= so it
+    // returns only what this device needs. The proxy's Last-Modified does not
+    // depend on it, so a new set must drop the 304 validator.
+    void setRegions(const String& ids) {
+        if (ids != regions_) invalidateCache();
+        regions_ = ids;
+    }
 
     // One poll: GET /api/v3/alerts, stream-parse into the builder.
     // The builder is only committed by the caller on Kind::Ok (SPEC 168).
@@ -55,9 +60,8 @@ public:
 private:
     String token_;
     String lastModified_;
-#ifdef AIRALERT_DEV
     String mockUrl_;
-#endif
+    String regions_;
     airalert::ApiSnapshotCache cache_;
     BearSSL::Session session_; // TLS resumption between 15 s polls
 };

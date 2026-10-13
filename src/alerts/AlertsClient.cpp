@@ -4,8 +4,8 @@
 #include "CaBundle.h"
 #endif
 
-// SPEC 133: production hostname is immutable. Dev builds may point at a local
-// emulator at runtime (serial `setmock`), never via any web UI.
+// SPEC 133: the hostname is immutable from the Web UI. Serial `setapi` may point
+// at a LAN proxy (proxy/README.md) or a dev emulator instead.
 static const char kAlertsHost[] = "api.ukrainealarm.com";
 static const char kAlertsUrl[] = "https://api.ukrainealarm.com/api/v3/alerts";
 
@@ -85,20 +85,20 @@ AlertsClient::Result AlertsClient::poll(airalert::SnapshotBuilder& builder) {
     Result r;
 
     const char* url = kAlertsUrl;
+    String proxyUrl; // owns url's buffer while it is in use
     BearSSL::WiFiClientSecure secureClient;
     WiFiClient* client = &secureClient;
-#ifdef AIRALERT_DEV
-    bool devMockTls = false;
     WiFiClient plainClient;
     if (mockUrl_.length()) {
-        url = mockUrl_.c_str();
-        if (mockUrl_.startsWith("https")) {
-            devMockTls = true;
-        } else {
-            client = &plainClient;
+        // LAN proxy / emulator: plain HTTP skips the ~20 KB TLS handshake
+        proxyUrl = mockUrl_;
+        if (regions_.length()) {
+            proxyUrl += proxyUrl.indexOf('?') < 0 ? "?regions=" : "&regions=";
+            proxyUrl += regions_;
         }
+        url = proxyUrl.c_str();
+        if (!mockUrl_.startsWith("https")) client = &plainClient;
     }
-#endif
     if (client == &secureClient) {
         // Heap guard: the ESP8266 core aborts on a failed `new`, so a TLS
         // context that cannot be allocated is a reboot loop, not a code=-1.
@@ -116,8 +116,9 @@ AlertsClient::Result AlertsClient::poll(airalert::SnapshotBuilder& builder) {
             r.heapAtError = freeHeap;
             return r;
         }
+        // production https override must still chain to the GTS anchors
 #ifdef AIRALERT_DEV
-        if (devMockTls) {
+        if (mockUrl_.length()) {
             static BearSSL::X509List devCas(CA_BUNDLE_PEM);
             secureClient.setTrustAnchors(&devCas);
         } else

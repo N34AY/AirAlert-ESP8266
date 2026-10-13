@@ -8,6 +8,7 @@
 | `setwifi <ssid> <пароль>` | зберегти Wi-Fi і перезавантажитись (SSID без пробілів — інакше через портал/Web UI) |
 | `settoken <токен>` | зберегти API-токен і перезавантажитись |
 | `setpass <пароль>` | задати/змінити пароль адміністратора Web UI |
+| `setapi <url>` | опитувати LAN-проксі (`proxy/README.md`) або емулятор замість ukrainealarm.com; без аргументу — назад на офіційний API. Лише через серіал, не через Web UI (SPEC 133). Старе ім'я `setmock` теж працює |
 | `forgetwifi` | стерти Wi-Fi → режим налаштування (AP) |
 | `show` | що налаштовано (секрети не показуються — лише «configured») |
 | `status` | стан: wifi/ntp/тривоги/mute/реле/heap |
@@ -22,6 +23,5 @@
 | Команда | Дія |
 |---|---|
 | `sim <тип> full\|partial\|none` | інжекція тривоги в обхід API (типи: air_raid, artillery_shelling, urban_fights, chemical, nuclear) |
-| `setmock <url>` | опитувати емулятор замість ukrainealarm.com; `setmock` без аргументу — назад на бойовий API (див. docs/TESTING.md) |
 
 Секрети ніколи не виводяться в консоль і не потрапляють у журнал.

@@ -11,7 +11,7 @@
 struct SecretsStore {
     String wifiSsid, wifiPass, apiToken;
     String webPassHash, webSalt; // hex(sha256(salt+password)), hex salt
-    String mockUrl;              // dev-only emulator URL, empty in normal use
+    String mockUrl;              // LAN proxy / emulator URL (`setapi`), empty = official API
     String provisioningPass;
 
     static constexpr const char* kPath = "/secrets.json";

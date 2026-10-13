@@ -81,6 +81,13 @@ def response_body():
     return list(regions.values())
 
 
+def regions_body():
+    # real /api/v3/regions shape, only the emulator's known locations
+    node = lambda uid, kids=(): {"regionId": str(uid), "regionName": LOCATION_NAMES[uid],
+                                 "regionType": region_type(uid), "regionChildIds": list(kids)}
+    return {"states": [node(14, [node(75, [node(703)])]), node(31), node(16)]}
+
+
 def touch():
     # HTTP dates have one-second resolution. Ensure two quick commands still
     # produce different validators so the firmware cannot receive a false 304.
@@ -189,6 +196,8 @@ class H(BaseHTTPRequestHandler):
         u = urlparse(self.path)
         if u.path == "/api/v3/alerts":
             return self.serve_alerts()
+        if u.path == "/api/v3/regions":  # catalog for the proxy's region filter
+            return self._send(200, json.dumps(regions_body(), ensure_ascii=False).encode())
         if u.path == "/ctl":
             cmd = (parse_qs(u.query).get("cmd") or [""])[0]
             out = do_cmd(cmd)

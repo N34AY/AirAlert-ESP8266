@@ -149,6 +149,12 @@ static void applyConfig() {
     health.setConfig({appCfg.apiStaleAfterSec * 1000u});
     builder.setSelected(appCfg.selected, appCfg.selectedCount);
     builder.setCatalog(&catalog);
+    String regions; // proxy filter; ignored by the official API path
+    for (uint8_t i = 0; i < appCfg.selectedCount; ++i) {
+        if (i) regions += ',';
+        regions += appCfg.selected[i].uid;
+    }
+    client.setRegions(regions);
     for (uint8_t i = 0; i < appCfg.selectedCount; ++i) { // catalogue regenerated -> stale uids
         Location known;
         if (!catalog.findByUid(appCfg.selected[i].uid, known))
@@ -341,14 +347,15 @@ static void handleSerialLine(String line) {
         }
         secrets = next;
         Serial.println("[CFG] web password saved");
-    } else if (line.startsWith("setmock")) { // dev: emulator URL, empty = real API
-#ifdef AIRALERT_DEV
-        String mockUrl = line.length() > 8 ? line.substring(8) : "";
+    } else if (line.startsWith("setapi") || line.startsWith("setmock")) {
+        // LAN proxy or emulator URL, empty = real API. Serial only (SPEC 133).
+        const int sp = line.indexOf(' ');
+        String mockUrl = sp > 0 ? line.substring(sp + 1) : "";
         mockUrl.trim();
         if (mockUrl.length() > 192 ||
             (mockUrl.length() && !mockUrl.startsWith("http://") &&
              !mockUrl.startsWith("https://"))) {
-            Serial.println("[CFG] usage: setmock [http(s)://host:port/path]");
+            Serial.println("[CFG] usage: setapi [http(s)://host:port/api/v3/alerts]");
             return;
         }
         SecretsStore next = secrets;
@@ -358,22 +365,20 @@ static void handleSerialLine(String line) {
             return;
         }
         secrets = next;
-        Serial.printf("[CFG] mock url %s, restarting\n",
+        Serial.printf("[CFG] api url %s, restarting\n",
                       secrets.mockUrl.length() ? "set" : "cleared");
         delay(300);
         ESP.restart();
-#else
-        Serial.println("[CFG] dev build only");
-#endif
     } else if (line == "forgetwifi") { // SPEC 82
         if (wifi.forget())
             eventLog.log(LogEvent::ConfigChanged, "wifi_forget");
         else
             Serial.println("[CFG] Wi-Fi credentials SAVE FAILED");
     } else if (line == "show") { // secrets never printed (SPEC 6)
-        Serial.printf("[CFG] ssid='%s' token: %s webpass: %s\n", secrets.wifiSsid.c_str(),
+        Serial.printf("[CFG] ssid='%s' token: %s webpass: %s api: %s\n", secrets.wifiSsid.c_str(),
                       secrets.apiToken.length() ? "configured" : "MISSING",
-                      secrets.hasWebPassword() ? "set" : "NOT SET");
+                      secrets.hasWebPassword() ? "set" : "NOT SET",
+                      secrets.mockUrl.length() ? secrets.mockUrl.c_str() : "api.ukrainealarm.com");
     } else if (line == "restart") {
         ESP.restart();
     } else if (line == "mute") {
@@ -422,7 +427,7 @@ static void handleSerialLine(String line) {
         Serial.println("[SIM] dev build only");
 #endif
     } else if (line.length()) {
-        Serial.println("[CFG] setwifi|settoken|setpass|setmock|forgetwifi|show|restart|mute|unmute|test [start|stop]|status|config|log|sim");
+        Serial.println("[CFG] setwifi|settoken|setpass|setapi|forgetwifi|show|restart|mute|unmute|test [start|stop]|status|config|log|sim");
     }
 }
 
@@ -469,16 +474,14 @@ void setup() {
     if (!secrets.load())
         Serial.println("[CFG] secrets missing or invalid; using setup defaults");
     client.begin(secrets.apiToken);
-#ifdef AIRALERT_DEV
     String mockUrl = secrets.mockUrl;
-#ifdef AIRALERT_MOCK_URL
+#if defined(AIRALERT_DEV) && defined(AIRALERT_MOCK_URL)
     if (!mockUrl.length()) mockUrl = AIRALERT_MOCK_URL;
 #endif
     if (mockUrl.length()) {
         client.setMockUrl(mockUrl);
-        Serial.printf("[API] MOCK MODE: %s\n", mockUrl.c_str());
+        Serial.printf("[API] API URL OVERRIDE: %s\n", mockUrl.c_str());
     }
-#endif
     wifi.begin(&secrets); // STA or provisioning AP (SPEC 78-81)
 
     web.begin({&appCfg, &engine, &notify, &health, &relay, &configStore, &secrets,
