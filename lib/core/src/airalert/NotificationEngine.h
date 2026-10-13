@@ -43,6 +43,11 @@ public:
     void muteLong(uint32_t nowMs) { doMute(MuteState::Scope::Snooze, nowMs); }
     void unmute() { mute_.unmute(); }
     void manualTest(uint32_t nowMs) {
+        playTest(Pattern::pulses(cfg_.manualTestMs, 0, 1), nowMs);
+    }
+    // Plays an arbitrary pattern as a manual test (Web UI sequence preview).
+    void playTest(const Pattern& p, uint32_t nowMs) {
+        testPattern_ = p;
         queue_.push({Signal::ManualTest, AlertType::Unknown, 255});
         (void)nowMs;
     }
@@ -85,13 +90,14 @@ private:
             case Signal::Escalation: return p.start; // SPEC 35
             case Signal::End: return p.end;
             case Signal::Reminder: return p.reminder;
-            case Signal::ManualTest: return Pattern{true, cfg_.manualTestMs, 0, 1};
+            case Signal::ManualTest: return testPattern_;
         }
         return Pattern{};
     }
 
     AlertProfile profiles_[kAlertTypeCount];
     Config cfg_;
+    Pattern testPattern_ = manualTestPattern();
     NotificationQueue queue_;
     PatternScheduler sched_;
     MuteState mute_;

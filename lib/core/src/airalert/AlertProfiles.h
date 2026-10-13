@@ -8,9 +8,9 @@ namespace airalert {
 // Web UI later (Phase 6); these are the shipped defaults.
 struct AlertProfile {
     bool enabled = true;
-    Pattern start{true, 3000, 1000, 3};
-    Pattern end{true, 1000, 1000, 2};
-    Pattern reminder{false, 1000, 1000, 2};
+    Pattern start = Pattern::pulses(3000, 1000, 3);
+    Pattern end = Pattern::pulses(1000, 1000, 2);
+    Pattern reminder = Pattern::pulses(1000, 1000, 2, false);
     uint32_t reminderIntervalMs = 900000; // 15 min
     uint8_t priority = 50;
 };
@@ -28,7 +28,7 @@ inline AlertProfile defaultProfile(AlertType t) {
         case AlertType::AirRaid: p.priority = 50; break;
         case AlertType::AirRaidYellow:
             p.priority = 45;
-            p.start = Pattern{true, 1000, 1000, 2};
+            p.start = Pattern::pulses(1000, 1000, 2);
             break;
         default: p.priority = 40; break; // Unknown: signal, lowest priority
     }
@@ -36,6 +36,6 @@ inline AlertProfile defaultProfile(AlertType t) {
 }
 
 // SPEC 54: manual TEST -> 500-1000 ms single relay pulse.
-inline Pattern manualTestPattern() { return Pattern{true, 600, 0, 1}; }
+inline Pattern manualTestPattern() { return Pattern::pulses(600, 0, 1); }
 
 } // namespace airalert

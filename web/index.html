@@ -43,6 +43,52 @@ button.btn.warn{background:#a35b18}button.btn.bad{background:#a33030}button.btn.
 .tip:hover,.tip:focus{color:var(--tx);border-color:var(--acc);outline:0}
 .tip>span{display:none;position:absolute;left:50%;top:22px;transform:translateX(-50%);width:min(300px,calc(100vw - 32px));background:#232a32;border:1px solid #333c46;border-radius:8px;padding:9px 11px;color:var(--tx);font:13px/1.45 system-ui,sans-serif;z-index:5;box-shadow:0 4px 14px #0008;text-align:left}
 .tip:hover>span,.tip:focus>span{display:block}
+.sq{border:1px solid #2f3740;border-radius:12px;padding:12px;margin-top:12px;background:#161b21}
+.sq.off .tl,.sq.off .ov,.sq.off .ru{opacity:.4}
+.sqh{display:flex;align-items:center;gap:10px}
+.sqh b{flex:1;font-size:14.5px}.sqh small{display:block;font-weight:400;color:var(--mut);font-size:12px}
+.sqh select{width:auto;padding:4px 6px;font-size:12.5px}
+.sw{position:relative;width:38px;height:22px;flex:none}
+.sw input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer;z-index:1}
+.sw span{position:absolute;inset:0;border-radius:11px;background:#39424d;transition:.2s}
+.sw span:after{content:"";position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.2s}
+.sw input:checked+span{background:var(--ok)}.sw input:checked+span:after{transform:translateX(16px)}
+.tl{position:relative;display:flex;height:58px;margin-top:12px;padding:4px;background:#0d1014;border-radius:9px;user-select:none;-webkit-user-select:none}
+.st{position:relative;flex:1 1 0;min-width:28px;border-radius:6px;border-right:2px solid #0d1014;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;cursor:grab;touch-action:none;overflow:hidden;white-space:nowrap;transition:box-shadow .15s,transform .15s,filter .15s;outline:0}
+.st.on{background:linear-gradient(#e3594d,#a9332b);color:#fff;text-shadow:0 1px 2px #0006}
+.st.on.lim{background:linear-gradient(#e7ad45,#a3601b)}
+.st.pz{background:repeating-linear-gradient(135deg,#2b333c 0 6px,#222930 6px 12px);color:var(--mut)}
+.st.sel{box-shadow:inset 0 0 0 2px var(--acc)}
+.st:focus-visible{box-shadow:inset 0 0 0 2px #fff}
+.st.drag{transform:translateY(-5px) scale(1.04);box-shadow:0 8px 18px #000b,inset 0 0 0 2px var(--acc);cursor:grabbing;z-index:2}
+.st.play{filter:brightness(1.35)}
+.st i{position:absolute;right:0;top:0;bottom:0;width:12px;cursor:ew-resize;touch-action:none}
+.st i:after{content:"";position:absolute;right:4px;top:32%;bottom:32%;width:2px;border-radius:1px;background:#fff7}
+.st span{pointer-events:none;overflow:hidden;text-overflow:clip;padding:0 6px}
+.st em{font-style:normal}.st.nar em{display:none}.st.nar span{padding:0 10px 0 2px}
+.sp{flex:0 1 0}
+.sqe{position:absolute;inset:4px;display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:13px;border:1px dashed #333c46;border-radius:6px}
+.ph{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:#fff;box-shadow:0 0 8px #fff;pointer-events:none;z-index:3}
+.ru{position:relative;height:15px;margin:3px 4px 0;font-size:10.5px;color:var(--mut)}
+.ru span{position:absolute;transform:translateX(-50%);white-space:nowrap}.ru span:first-child{transform:none}
+.ov{display:flex;gap:1px;height:6px;margin-top:8px;border-radius:3px;overflow:hidden}
+.ov b{flex:1 1 0;background:#2a3138}.ov b.on{background:#c4453b}.ov b.rep{margin-left:3px}
+.sqb{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:10px}
+.sqb .fill{flex:1}
+.chip{background:#232a32;border:1px solid #333c46;color:var(--tx);border-radius:16px;padding:5px 11px;font-size:13px;cursor:pointer;line-height:1.3}
+.chip:hover{border-color:#4a5562}.chip:disabled{opacity:.35;cursor:default}
+.chip.go{background:#a35b18;border-color:#a35b18;color:#fff}.chip.stop{background:#a33030;border-color:#a33030;color:#fff}
+.rp{display:inline-flex;align-items:center;border:1px solid #333c46;border-radius:16px;overflow:hidden;font-size:13px}
+.rp button{background:#232a32;border:0;color:var(--tx);width:28px;height:28px;cursor:pointer;font-size:15px}
+.rp span{min-width:44px;text-align:center}
+.sqs{margin-top:8px;font-size:12.5px;color:var(--mut)}.sqs .w{color:var(--warn)}
+.insp{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px;padding:10px;border-radius:9px;background:#1f252c}
+.seg{display:inline-flex;border:1px solid #333c46;border-radius:16px;overflow:hidden}
+.seg button{background:none;border:0;color:var(--mut);padding:5px 11px;font-size:13px;cursor:pointer}
+.seg button.on{background:#c4453b;color:#fff}.seg button.pz.on{background:#3a434d}
+.insp input[type=range]{flex:1;min-width:130px;padding:0;border:0;background:none;accent-color:var(--acc)}
+.insp input[type=number]{width:74px}
+.insp .w{flex-basis:100%;color:var(--warn);font-size:12.5px}
 </style>
 </head>
 <body>
@@ -243,21 +289,120 @@ async function loadCfg(){cfg=await get("/api/v1/config");
  $("a_poll").value=cfg.alerts.poll_sec;$("a_stale").value=cfg.alerts.stale_sec;
  selected=(cfg.locations||[]).map(l=>l.uid);
  const sel=$("ptype");sel.innerHTML=Object.keys(cfg.profiles).map(k=>`<option value="${k}">${TYPES[k]||k}</option>`).join("");
- renderProfile()}
-function pf(name,p){return `<fieldset style="border:1px solid #333c46;border-radius:8px;padding:8px;margin-top:10px"><legend class="mut">${name}</legend>
- <div class="row"><label><input type="checkbox" data-p="${name}.enabled" ${p.enabled?"checked":""}> Увімкнено</label></div>
- <div class="row"><div><label>УВІМК, мс</label><input type="number" data-p="${name}.on_ms" value="${p.on_ms}"></div>
- <div><label>ВИМК, мс</label><input type="number" data-p="${name}.off_ms" value="${p.off_ms}"></div>
- <div><label>Повторів</label><input type="number" data-p="${name}.repeat" value="${p.repeat}"></div></div></fieldset>`}
-function renderProfile(){const k=$("ptype").value,p=cfg.profiles[k];
+ curProf=null;renderProfile()}
+// ---- sequence builder: signal = steps (ms, >0 siren ON, <0 pause) x repeat
+const SQ={start:["Початок тривоги","також посилення загрози"],end:["Відбій",""],reminder:["Нагадування","поки тривога триває"]};
+const SQ_PRESETS={"Класика 3×":[3,[3000,-1000]],"З розкруткою":[1,[13000,-3000,10000,-3000,10000]],"Короткий 2×":[2,[1000,-1000]],"Один довгий":[1,[15000]]};
+const SQ_MAX=12,SQ_SNAP=100,SQ_LIM=60000;
+let seqs={},sqSel={},sqPlay=null,curProf=null;
+const fmtS=ms=>String(+(ms/1000).toFixed(1)).replace(".",",")+" с";
+const sqDur=s=>s.steps.reduce((a,v)=>a+Math.abs(v),0);
+function sqPlayed(s){if(!s.steps.some(v=>v>0))return 0;let t=sqDur(s)*s.repeat;
+ for(let i=s.steps.length-1;i>=0&&s.steps[i]<0;i--)t+=s.steps[i];return t}
+function plural(n,a,b,c){const m=n%10,h=n%100;return n+" "+(m===1&&h!==11?a:m>=2&&m<=4&&(h<12||h>14)?b:c)}
+// steps whose continuous ON run (adjacent ON blocks, also across repeats) outlives the safety limit
+function sqOver(s){const lim=+$("r_max").value||cfg.relay.max_on_ms,st=s.steps,n=st.length,o=st.map(()=>false),ring=s.repeat>1;
+ for(let a=0;a<n;){if(st[a]<=0){a++;continue}let b=a,sum=0;while(b<n&&st[b]>0)sum+=st[b++];
+  if(ring&&b===n&&a>0)for(let c=0;c<a&&st[c]>0;c++)sum+=st[c];
+  if(ring&&a===0&&b<n)for(let c=n-1;c>=b&&st[c]>0;c--)sum+=st[c];
+  if(sum>=lim)for(let j=a;j<b;j++)o[j]=true;a=b}
+ return o}
+function sqCard(k){const s=seqs[k],[t,sub]=SQ[k];
+ return `<div class="sq${s.enabled?"":" off"}" id="sq-${k}"><div class="sqh"><b>${t}${sub?`<small>${sub}</small>`:""}</b>
+ <select onchange="sqPreset('${k}',this)"><option value="">Шаблон…</option>${Object.keys(SQ_PRESETS).map(n=>`<option>${n}</option>`).join("")}</select>
+ <span class="sw" title="Увімкнено"><input type="checkbox" ${s.enabled?"checked":""} onchange="sqEn('${k}',this.checked)"><span></span></span></div>
+ <div class="tl"></div><div class="ru"></div><div class="ov"></div>
+ <div class="sqb"><button class="chip" data-add="1" onclick="sqAdd('${k}',1)">+ 🔊 Гудить</button><button class="chip" data-add="1" onclick="sqAdd('${k}',-1)">+ ⏸ Пауза</button>
+ <span class="fill"></span><span class="rp" title="Скільки разів повторити всю послідовність"><button onclick="sqRep('${k}',-1)">−</button><span></span><button onclick="sqRep('${k}',1)">+</button></span>
+ <button class="chip go" data-test="1" onclick="sqTest('${k}')">▶ Тест</button></div>
+ <div class="sqs"></div><div class="insp-w"></div></div>`}
+function sqDraw(k){const el=$("sq-"+k);if(!el)return;const s=seqs[k],tot=sqDur(s),ov=sqOver(s),hadFocus=el.contains(document.activeElement)&&document.activeElement.classList.contains("st");
+ if(!s._drag)s._scale=Math.max(10000,tot*1.15);const sc=Math.max(s._scale,tot);
+ el.classList.toggle("off",!s.enabled);
+ const tl=el.querySelector(".tl");
+ tl.innerHTML=s.steps.map((v,i)=>`<div class="st ${v>0?"on":"pz"}${ov[i]?" lim":""}${sqSel[k]===i?" sel":""}${s._drag&&s._drag.moved&&!s._drag.size&&s._drag.i===i?" drag":""}" data-i="${i}" tabindex="0" style="flex-grow:${Math.abs(v)}" title="${v>0?"Гудить":"Пауза"} ${fmtS(Math.abs(v))} — тягніть, щоб перемістити; край — щоб змінити час"><span>${v>0?"<em>🔊 </em>":""}${fmtS(Math.abs(v))}</span><i></i></div>`).join("")
+  +(s.steps.length?"":`<div class="sqe">Порожньо — додайте блок «Гудить»</div>`)+`<div class="sp" style="flex-grow:${sc-tot}"></div><div class="ph hide"></div>`;
+ tl.querySelectorAll(".st").forEach(b=>b.classList.toggle("nar",b.offsetWidth<64));
+ const w=tl.clientWidth||600,step=[1,2,5,10,15,20,30,60].find(x=>x*1000/sc*w>=46)||120;let ru="";
+ for(let x=0;x*1000<=sc;x+=step){const f=x*1000/sc;ru+=`<span style="left:${f*100}%${f>.93?";transform:translateX(-100%)":""}">${x} с</span>`}
+ el.querySelector(".ru").innerHTML=ru;
+ let o="",last=s.steps.length-1;while(last>=0&&s.steps[last]<0)last--;
+ for(let r=0;r<s.repeat&&last>=0;r++)s.steps.forEach((v,i)=>{if(r<s.repeat-1||i<=last)o+=`<b class="${v>0?"on":""}${r&&!i?" rep":""}" style="flex-grow:${Math.abs(v)}"></b>`});
+ el.querySelector(".ov").innerHTML=o;
+ el.querySelector(".rp span").textContent="× "+s.repeat;
+ el.querySelectorAll("[data-add]").forEach(b=>b.disabled=s.steps.length>=SQ_MAX);
+ const lim=ov.some(Boolean);
+ el.querySelector(".sqs").innerHTML=s.steps.length?`Разом ${fmtS(sqPlayed(s))} · ${plural(s.repeat,"прогін","прогони","прогонів")} · ${plural(s.steps.length,"блок","блоки","блоків")} з ${SQ_MAX}`
+  +(lim?` · <span class="w">⚠ безперервне УВІМК не коротше за safety-ліміт ${fmtS(+$("r_max").value||cfg.relay.max_on_ms)} — сирену буде вимкнено раніше</span>`:""):"Сигнал вимкнено: немає жодного блоку «Гудить»";
+ if(hadFocus&&sqSel[k]!=null){const b=tl.querySelector(`[data-i="${sqSel[k]}"]`);if(b)b.focus()}}
+function sqInsp(k){const el=$("sq-"+k);if(!el)return;const s=seqs[k],i=sqSel[k],w=el.querySelector(".insp-w");
+ if(i==null||i>=s.steps.length){sqSel[k]=null;w.innerHTML="";return}
+ const v=s.steps[i],ms=Math.abs(v);
+ w.innerHTML=`<div class="insp"><span class="seg"><button class="${v>0?"on":""}" onclick="sqKind('${k}',1)">🔊 Гудить</button><button class="pz ${v<0?"on":""}" onclick="sqKind('${k}',-1)">⏸ Пауза</button></span>
+ <input type="range" min="${SQ_SNAP}" max="${SQ_LIM}" step="${SQ_SNAP}" value="${ms}" oninput="sqSet('${k}',+this.value,this)">
+ <input type="number" min="0.1" max="60" step="0.1" value="${ms/1000}" oninput="sqSet('${k}',this.value*1000,this)"><span class="mut">с</span>
+ <button class="chip" title="Вліво" onclick="sqMove('${k}',-1)" ${i?"":"disabled"}>←</button><button class="chip" title="Вправо" onclick="sqMove('${k}',1)" ${i<s.steps.length-1?"":"disabled"}>→</button>
+ <button class="chip" title="Дублювати" onclick="sqDup('${k}')" ${s.steps.length<SQ_MAX?"":"disabled"}>⧉</button><button class="chip" title="Видалити" onclick="sqDel('${k}')">🗑</button></div>`}
+function sqChanged(k,insp){if(sqPlay&&sqPlay.k===k)sqStop();sqDraw(k);if(insp)sqInsp(k)}
+function sqAdd(k,sign){const s=seqs[k];if(s.steps.length>=SQ_MAX)return;const at=sqSel[k]!=null?sqSel[k]+1:s.steps.length;
+ s.steps.splice(at,0,sign*(sign>0?3000:1000));sqSel[k]=at;sqChanged(k,1)}
+function sqDup(k){const s=seqs[k],i=sqSel[k];if(i==null||s.steps.length>=SQ_MAX)return;s.steps.splice(i+1,0,s.steps[i]);sqSel[k]=i+1;sqChanged(k,1)}
+function sqDel(k){const s=seqs[k],i=sqSel[k];if(i==null)return;s.steps.splice(i,1);sqSel[k]=s.steps.length?Math.min(i,s.steps.length-1):null;sqChanged(k,1)}
+function sqMove(k,d){const s=seqs[k],i=sqSel[k],j=i+d;if(i==null||j<0||j>=s.steps.length)return;[s.steps[i],s.steps[j]]=[s.steps[j],s.steps[i]];sqSel[k]=j;sqChanged(k,1)}
+function sqKind(k,sign){const s=seqs[k],i=sqSel[k];if(i==null)return;s.steps[i]=sign*Math.abs(s.steps[i]);sqChanged(k,1)}
+function sqSet(k,ms,src){const s=seqs[k],i=sqSel[k];if(i==null||!(ms>0))return;ms=Math.min(SQ_LIM,Math.max(SQ_SNAP,Math.round(ms/SQ_SNAP)*SQ_SNAP));
+ s.steps[i]=Math.sign(s.steps[i])*ms;sqChanged(k);
+ const w=$("sq-"+k).querySelector(".insp");if(w)w.querySelectorAll("input").forEach(x=>{if(x!==src)x.value=x.type==="range"?ms:ms/1000})}
+function sqRep(k,d){const s=seqs[k];s.repeat=Math.min(20,Math.max(1,s.repeat+d));sqChanged(k)}
+function sqEn(k,on){seqs[k].enabled=on;sqDraw(k)}
+function sqPreset(k,sel){const p=SQ_PRESETS[sel.value];sel.value="";if(!p)return;seqs[k].repeat=p[0];seqs[k].steps=p[1].slice();sqSel[k]=null;sqChanged(k,1)}
+function sqDown(e){const b=e.target.closest(".st");if(!b||e.button>0)return;const k=b.closest(".sq").id.slice(3),s=seqs[k],tl=b.parentNode;
+ e.preventDefault();b.focus();
+ const d=s._drag={i:+b.dataset.i,size:e.target.tagName==="I",x0:e.clientX,ms0:Math.abs(s.steps[+b.dataset.i]),moved:false,pxms:(tl.clientWidth-8)/Math.max(s._scale,sqDur(s))};
+ const mv=ev=>{const dx=ev.clientX-d.x0;
+  if(d.size){const ms=Math.min(SQ_LIM,Math.max(SQ_SNAP,Math.round((d.ms0+dx/d.pxms)/SQ_SNAP)*SQ_SNAP));
+   if(ms!==Math.abs(s.steps[d.i])){s.steps[d.i]=Math.sign(s.steps[d.i])*ms;d.moved=true;sqSel[k]=d.i;sqChanged(k)}return}
+  if(!d.moved){if(Math.abs(dx)<6)return;d.moved=true;sqSel[k]=d.i;sqChanged(k)}
+  let j=0;tl.querySelectorAll(".st").forEach((x,n)=>{const r=x.getBoundingClientRect();if(n!==d.i&&ev.clientX>r.left+r.width/2)j++});
+  if(j!==d.i){const[v]=s.steps.splice(d.i,1);s.steps.splice(j,0,v);d.i=j;sqSel[k]=j;sqChanged(k)}};
+ const up=()=>{["pointermove","pointerup","pointercancel"].forEach((n,x)=>document.removeEventListener(n,x?up:mv));
+  s._drag=null;if(!d.moved)sqSel[k]=sqSel[k]===d.i?null:d.i;sqDraw(k);sqInsp(k)};
+ document.addEventListener("pointermove",mv);document.addEventListener("pointerup",up);document.addEventListener("pointercancel",up)}
+function sqKey(e){const b=e.target.closest(".st");if(!b)return;const k=b.closest(".sq").id.slice(3),i=+b.dataset.i,s=seqs[k];sqSel[k]=i;
+ if(e.key==="Delete"||e.key==="Backspace")sqDel(k);
+ else if(e.altKey&&(e.key==="ArrowLeft"||e.key==="ArrowRight"))sqMove(k,e.key==="ArrowLeft"?-1:1);
+ else if(e.key==="ArrowLeft"||e.key==="ArrowRight"){sqSet(k,Math.abs(s.steps[i])+(e.key==="ArrowLeft"?-500:500));sqInsp(k)}
+ else if(e.key==="Enter"||e.key===" "){sqDraw(k);sqInsp(k)}
+ else return;e.preventDefault()}
+async function sqTest(k){if(sqPlay&&sqPlay.k===k){sqStop();relayOff();return}
+ const s=seqs[k];if(!s.steps.some(v=>v>0))return;
+ if(!confirm(`Сирена реально звучатиме за цим сигналом (${fmtS(sqPlayed(s))}). Запустити?`))return;
+ try{await post("/api/v1/test/pattern",{steps:s.steps,repeat:s.repeat});sqAnim(k)}
+ catch(e){alert(/playing/.test(e.message)?"Зараз уже грає інший сигнал — дочекайтесь кінця або натисніть «Реле ВИМК».":"Помилка: "+e.message)}}
+function sqAnim(k){sqStop();const s={steps:seqs[k].steps.slice(),repeat:seqs[k].repeat},dur=sqDur(s),total=sqPlayed(s),t0=performance.now();
+ sqPlay={k,raf:0};const btn=$("sq-"+k).querySelector("[data-test]");btn.className="chip stop";btn.textContent="■ Стоп";
+ const f=()=>{const el=$("sq-"+k);if(!sqPlay||!el)return;const t=performance.now()-t0;if(t>=total)return sqStop();
+  const rep=Math.floor(t/dur);let tt=t-rep*dur,i=0;while(i<s.steps.length-1&&tt>=Math.abs(s.steps[i]))tt-=Math.abs(s.steps[i++]);
+  const bl=el.querySelectorAll(".st"),b=bl[i],ph=el.querySelector(".ph");
+  bl.forEach((x,j)=>x.classList.toggle("play",j===i&&s.steps[i]>0));
+  ph.classList.remove("hide");ph.style.left=(b.offsetLeft+Math.min(1,tt/Math.abs(s.steps[i]))*b.offsetWidth)+"px";
+  btn.textContent=`■ Стоп${s.repeat>1?` · ${rep+1}/${s.repeat}`:""}`;sqPlay.raf=requestAnimationFrame(f)};f()}
+function sqStop(){if(!sqPlay)return;const el=$("sq-"+sqPlay.k);cancelAnimationFrame(sqPlay.raf);sqPlay=null;
+ if(!el)return;el.querySelector(".ph").classList.add("hide");el.querySelectorAll(".st.play").forEach(x=>x.classList.remove("play"));
+ const btn=el.querySelector("[data-test]");btn.className="chip go";btn.textContent="▶ Тест"}
+function renderProfile(){if(curProf&&$("pr_en"))collectProfile();sqStop();
+ const k=curProf=$("ptype").value,p=cfg.profiles[k];seqs={};sqSel={};
+ for(const n in SQ)seqs[n]={enabled:p[n].enabled,repeat:Math.max(1,p[n].repeat||1),steps:(p[n].steps||[]).slice()};
  $("profform").innerHTML=`<div class="row"><label><input type="checkbox" id="pr_en" ${p.enabled?"checked":""}> Загроза активує сигнали</label></div>
  <label>Пріоритет (0–255)</label><input id="pr_pri" type="number" min="0" max="255" value="${p.priority}">
- ${pf("start",p.start)}${pf("end",p.end)}${pf("reminder",p.reminder)}
- <label>Інтервал нагадування, с (≥30)</label><input id="pr_int" type="number" min="30" value="${p.reminder.interval_sec}">`}
-function collectProfile(){const k=$("ptype").value,p=cfg.profiles[k];
+ <p class="mut" style="margin-top:12px">Блоки можна перетягувати, а правий край — тягнути, щоб змінити тривалість. Натисніть на блок, щоб задати точний час.</p>
+ ${Object.keys(SQ).map(sqCard).join("")}
+ <label>Інтервал нагадування, с (≥30)</label><input id="pr_int" type="number" min="30" value="${p.reminder.interval_sec}">`;
+ $("profform").querySelectorAll(".tl").forEach(t=>{t.addEventListener("pointerdown",sqDown);t.addEventListener("keydown",sqKey)});
+ Object.keys(SQ).forEach(sqDraw)}
+function collectProfile(){const p=cfg.profiles[curProf];if(!p)return;
  p.enabled=$("pr_en").checked;p.priority=+$("pr_pri").value;p.reminder.interval_sec=+$("pr_int").value;
- document.querySelectorAll("[data-p]").forEach(el=>{const[sec,f]=el.dataset.p.split(".");
-  p[sec][f]=el.type==="checkbox"?el.checked:+el.value})}
+ for(const n in seqs){const s=seqs[n];Object.assign(p[n],{enabled:s.enabled,repeat:s.repeat,steps:s.steps.slice()});delete p[n].on_ms;delete p[n].off_ms}}
 async function saveConfig(){try{if(cfg.profiles&&$("profform").innerHTML)collectProfile();
  cfg.relay.single=$("r_single").value==="1";cfg.relay.active_high=$("r_ah").value==="1";cfg.relay.max_on_ms=+$("r_max").value;cfg.relay.test_ms=+$("r_test").value;
  cfg.led.alert_steady=$("l_steady").checked;cfg.led.alert_active_high=$("l_ah").value==="1";
@@ -320,7 +465,7 @@ async function loadSys(){try{const s=await get("/api/v1/system");
 function showTab(k){document.querySelectorAll("main>section").forEach(s=>s.classList.add("hide"));
  $("t-"+k).classList.remove("hide");
  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.k===k));
- if(k==="log")loadLog();if(k==="sys")loadSys();if(k==="api")loadTok()}
+ if(k==="sig"&&cfg)Object.keys(seqs).forEach(sqDraw);if(k==="log")loadLog();if(k==="sys")loadSys();if(k==="api")loadTok()}
 $("tabs").innerHTML=Object.entries(TABS).map(([k,n])=>`<button data-k="${k}" onclick="showTab('${k}')">${n}</button>`).join("");
 async function init(){$("login").classList.add("hide");await loadCfg();await loadCat();refresh();
  if(!refreshTimer)refreshTimer=setInterval(refresh,5000);showTab("dash")}

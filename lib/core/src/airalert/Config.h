@@ -96,8 +96,11 @@ inline ConfigError validateConfig(const AppConfig& c) {
     }
     for (const auto& p : c.profiles) {
         for (const Pattern* pt : {&p.start, &p.end, &p.reminder}) {
-            if (pt->onMs > 60000 || pt->offMs > 60000 || pt->repeat > 20)
+            if (pt->count > Pattern::kMaxSteps || pt->repeat > 20)
                 return ConfigError::BadPattern;
+            for (uint8_t i = 0; i < pt->count; ++i)
+                if (pt->steps[i] == 0 || pt->stepMs(i) > Pattern::kMaxStepMs)
+                    return ConfigError::BadPattern;
         }
         if (p.reminderIntervalMs < 30000) return ConfigError::BadPattern;
     }
@@ -106,11 +109,14 @@ inline ConfigError validateConfig(const AppConfig& c) {
 
 // ---- JSON (de)serialization -------------------------------------------------
 
+// steps: signed ms, > 0 siren ON, < 0 pause, e.g. [13000, -3000, 10000].
 inline void patternToJson(JsonObject o, const Pattern& p) {
     o["enabled"] = p.enabled;
-    o["on_ms"] = p.onMs;
-    o["off_ms"] = p.offMs;
     o["repeat"] = p.repeat;
+    JsonArray steps = o["steps"].to<JsonArray>();
+    for (uint8_t i = 0; i < p.count; ++i)
+        steps.add(p.stepOn(i) ? static_cast<int32_t>(p.stepMs(i))
+                              : -static_cast<int32_t>(p.stepMs(i)));
 }
 template <typename T>
 inline bool overlayUnsigned(JsonVariantConst v, T& out) {
@@ -129,13 +135,38 @@ inline bool overlayBool(JsonVariantConst v, bool& out) {
     return true;
 }
 
+// Accepts `steps`, or the on_ms/off_ms pair of firmware <= 0.9.2 (configs on flash and
+// old API clients), which becomes the equivalent two-step sequence.
 inline bool patternFromJson(JsonVariantConst o, Pattern& p) {
     if (o.isNull()) return true;
     if (!o.is<JsonObjectConst>()) return false;
-    return overlayBool(o["enabled"], p.enabled) &&
-           overlayUnsigned(o["on_ms"], p.onMs) &&
-           overlayUnsigned(o["off_ms"], p.offMs) &&
-           overlayUnsigned(o["repeat"], p.repeat);
+    if (!overlayBool(o["enabled"], p.enabled) || !overlayUnsigned(o["repeat"], p.repeat))
+        return false;
+    JsonVariantConst stepsValue = o["steps"];
+    if (!stepsValue.isNull()) {
+        if (!stepsValue.is<JsonArrayConst>()) return false;
+        JsonArrayConst arr = stepsValue.as<JsonArrayConst>();
+        if (arr.size() > Pattern::kMaxSteps) return false;
+        Pattern next = p;
+        next.count = 0;
+        for (JsonVariantConst v : arr) {
+            if (!v.is<int32_t>()) return false;
+            const int32_t ms = v.as<int32_t>();
+            if (ms == 0 || ms > static_cast<int32_t>(Pattern::kMaxStepMs) ||
+                ms < -static_cast<int32_t>(Pattern::kMaxStepMs))
+                return false;
+            if (!next.add(ms > 0, static_cast<uint32_t>(ms > 0 ? ms : -ms))) return false;
+        }
+        p = next;
+        return true;
+    }
+    if (o["on_ms"].isNull() && o["off_ms"].isNull()) return true;
+    uint32_t onMs = p.firstMs(true), offMs = p.firstMs(false);
+    if (!overlayUnsigned(o["on_ms"], onMs) || !overlayUnsigned(o["off_ms"], offMs) ||
+        onMs > Pattern::kMaxStepMs || offMs > Pattern::kMaxStepMs)
+        return false;
+    p = Pattern::pulses(onMs, offMs, p.repeat, p.enabled);
+    return true;
 }
 
 inline const char* locationTypeToString(LocationType t) {

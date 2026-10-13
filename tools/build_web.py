@@ -3,6 +3,7 @@
 import argparse
 import gzip
 import pathlib
+import re
 import sys
 
 ASSETS = {"index.html": "text/html", "setup.html": "text/html", "locations.json": "application/json"}
@@ -26,6 +27,26 @@ def render() -> str:
     return "\n".join(out)
 
 
+def embedded_matches(header: str) -> bool:
+    """Compare what the header decompresses to, not the gzip bytes: zlib
+    builds (macOS vs the CI runner) emit different streams for the same input."""
+    for name in ASSETS:
+        ident = name.replace(".", "_").replace("-", "_").upper()
+        m = re.search(rf"ASSET_{ident}\[\] PROGMEM = {{([0-9,]*)}};\s*"
+                      rf"static const size_t ASSET_{ident}_LEN = (\d+);", header)
+        if not m:
+            return False
+        gz = bytes(int(b) for b in m.group(1).split(",") if b)
+        if len(gz) != int(m.group(2)):
+            return False
+        try:
+            if gzip.decompress(gz) != (ROOT / "web" / name).read_bytes():
+                return False
+        except (OSError, EOFError):
+            return False
+    return True
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true",
@@ -34,7 +55,7 @@ def main() -> int:
     target = ROOT / "src/web/WebAssets.h"
     content = render()
     if args.check:
-        if not target.exists() or target.read_text() != content:
+        if not target.exists() or not embedded_matches(target.read_text()):
             print("src/web/WebAssets.h is stale; run tools/build_web.py", file=sys.stderr)
             return 1
         print("src/web/WebAssets.h is up to date")

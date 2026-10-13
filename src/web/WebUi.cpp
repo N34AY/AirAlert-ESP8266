@@ -147,6 +147,22 @@ void WebUi::begin(const Deps& d) {
         }
         server_.send(200, "application/json", "{\"ok\":true}");
     });
+    server_.on("/api/v1/test/pattern", HTTP_POST, [this] { // Web UI sequence preview
+        if (!authed()) return;
+        JsonDocument d;
+        if (deserializeJson(d, server_.arg("plain")) != DeserializationError::Ok)
+            return sendError(400, "BAD_JSON", "invalid JSON body");
+        Pattern p;
+        if (!d["steps"].is<JsonArrayConst>() ||
+            !patternFromJson(d.as<JsonVariantConst>(), p) || p.repeat > 20 || !p.hasOn())
+            return sendError(422, "BAD_PATTERN", "steps out of allowed range");
+        p.enabled = true;
+        if (d_.notify->playing())
+            return sendError(409, "BUSY", "a siren pattern is playing");
+        d_.notify->playTest(p, millis());
+        d_.log->log(LogEvent::Test, "source=web pattern");
+        server_.send(200, "application/json", "{\"ok\":true}");
+    });
     server_.on("/api/v1/relay/off", HTTP_POST, [this] { // SPEC 125 manual override
         if (!authed()) return;
         d_.notify->stopAll();
@@ -477,8 +493,9 @@ void WebUi::handleSetup() { // SPEC 80
         return;
     }
 
-    const AppConfig oldConfig = *d_.cfg;
-    AppConfig nextConfig = oldConfig;
+    // *d_.cfg stays untouched until both saves succeed, so it doubles as the
+    // rollback copy (one AppConfig on the 4 KB stack, not two).
+    AppConfig nextConfig = *d_.cfg;
     if (name.length()) memcpy(nextConfig.deviceName, name.c_str(), name.length() + 1);
     if (validateConfig(nextConfig) != ConfigError::None ||
         !d_.configStore->save(nextConfig)) {
@@ -492,7 +509,7 @@ void WebUi::handleSetup() { // SPEC 80
     if (token.length()) nextSecrets.apiToken = token;
     if (apass.length() >= 6) nextSecrets.setWebPassword(apass);
     if (!nextSecrets.save()) {
-        if (!d_.configStore->save(oldConfig))
+        if (!d_.configStore->save(*d_.cfg))
             Serial.println("[SETUP] failed to restore previous device config");
         sendError(500, "FS_ERROR", "cannot persist secrets");
         return;

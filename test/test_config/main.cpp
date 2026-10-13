@@ -26,7 +26,7 @@ void test_roundtrip_preserves_everything() {
     c.selected[0] = {123, LocationType::Hromada, 14, 67};
     c.alertIndicatorSteady = true;
     c.alertIndicatorActiveHigh = false;
-    c.profiles[0].start = Pattern{true, 5000, 500, 2};
+    c.profiles[0].start = Pattern::pulses(5000, 500, 2);
     c.profiles[0].reminderIntervalMs = 600000;
 
     JsonDocument d;
@@ -46,7 +46,7 @@ void test_roundtrip_preserves_everything() {
     TEST_ASSERT_EQUAL(123, r.selected[0].uid);
     TEST_ASSERT_EQUAL(LocationType::Hromada, r.selected[0].type);
     TEST_ASSERT_EQUAL(67, r.selected[0].raionUid);
-    TEST_ASSERT_EQUAL_UINT32(5000, r.profiles[0].start.onMs);
+    TEST_ASSERT_EQUAL_UINT32(5000, r.profiles[0].start.firstMs(true));
     TEST_ASSERT_EQUAL(2, r.profiles[0].start.repeat);
     TEST_ASSERT_EQUAL_UINT32(600000, r.profiles[0].reminderIntervalMs);
     TEST_ASSERT_EQUAL(ConfigError::None, validateConfig(r));
@@ -160,11 +160,67 @@ void test_validation_rejects_bad_ranges() { // SPEC 7, 42, 155
     c.relayMaxOnMs = 300000; // above hard cap 60 s
     TEST_ASSERT_EQUAL(ConfigError::BadRelayLimit, validateConfig(c));
     c = AppConfig{};
-    c.profiles[2].start.onMs = 120000;
+    c.profiles[2].start.steps[0] = 7000; // 70 s ON
     TEST_ASSERT_EQUAL(ConfigError::BadPattern, validateConfig(c));
     c = AppConfig{};
     c.startConfirmations = 0;
     TEST_ASSERT_EQUAL(ConfigError::BadConfirmations, validateConfig(c));
+}
+
+void test_pattern_steps_roundtrip() {
+    AppConfig c;
+    Pattern& s = c.profiles[0].end;
+    s = Pattern{};
+    s.add(true, 13000);
+    s.add(false, 3000);
+    s.add(true, 10000);
+    s.repeat = 1;
+    JsonDocument d;
+    configToJson(c, d);
+    JsonArrayConst steps = d["profiles"]["air_raid"]["end"]["steps"];
+    TEST_ASSERT_EQUAL(3, steps.size());
+    TEST_ASSERT_EQUAL_INT32(13000, steps[0].as<int32_t>());
+    TEST_ASSERT_EQUAL_INT32(-3000, steps[1].as<int32_t>());
+    AppConfig r;
+    TEST_ASSERT_EQUAL(ConfigError::None, configFromJson(d.as<JsonVariantConst>(), r));
+    TEST_ASSERT_EQUAL(3, r.profiles[0].end.count);
+    TEST_ASSERT_EQUAL_UINT32(10000, r.profiles[0].end.stepMs(2));
+    TEST_ASSERT_FALSE(r.profiles[0].end.stepOn(1));
+}
+
+void test_legacy_on_off_pattern_migrates_to_steps() { // 0.9.2 configs on flash
+    const char* old = R"({"profiles":{"air_raid":{"start":{"enabled":true,"on_ms":5000,"off_ms":2000,"repeat":3},"end":{"on_ms":0}}}})";
+    JsonDocument d;
+    TEST_ASSERT_TRUE(deserializeJson(d, old) == DeserializationError::Ok);
+    AppConfig c;
+    TEST_ASSERT_EQUAL(ConfigError::None, configFromJson(d.as<JsonVariantConst>(), c));
+    const Pattern& s = c.profiles[0].start;
+    TEST_ASSERT_EQUAL(2, s.count);
+    TEST_ASSERT_EQUAL_UINT32(5000, s.stepMs(0));
+    TEST_ASSERT_TRUE(s.stepOn(0));
+    TEST_ASSERT_EQUAL_UINT32(2000, s.stepMs(1));
+    TEST_ASSERT_EQUAL(3, s.repeat);
+    // on_ms alone keeps the default pause; on_ms 0 leaves just the pause
+    TEST_ASSERT_FALSE(c.profiles[0].end.hasOn());
+}
+
+void test_pattern_steps_reject_bad_values() {
+    const char* bad[] = {
+        R"({"profiles":{"air_raid":{"start":{"steps":[1000,0]}}}})",
+        R"({"profiles":{"air_raid":{"start":{"steps":[60010]}}}})",
+        R"({"profiles":{"air_raid":{"start":{"steps":[-60010]}}}})",
+        R"({"profiles":{"air_raid":{"start":{"steps":[1000.5]}}}})",
+        R"({"profiles":{"air_raid":{"start":{"steps":"1000"}}}})",
+        R"({"profiles":{"air_raid":{"start":{"steps":[1,1,1,1,1,1,1,1,1,1,1,1,1]}}}})",
+        R"({"profiles":{"air_raid":{"start":{"steps":[1000],"repeat":21}}}})",
+    };
+    for (const char* json : bad) {
+        JsonDocument d;
+        TEST_ASSERT_TRUE(deserializeJson(d, json) == DeserializationError::Ok);
+        AppConfig c;
+        TEST_ASSERT_EQUAL_MESSAGE(ConfigError::BadPattern,
+                                  configFromJson(d.as<JsonVariantConst>(), c), json);
+    }
 }
 
 void test_log_record_format() { // SPEC 94
@@ -190,6 +246,9 @@ int main() {
     RUN_TEST(test_json_rejects_overflow_and_overlong_name);
     RUN_TEST(test_json_rejects_future_schema_and_malformed_sections);
     RUN_TEST(test_validation_rejects_stale_range_and_location_shape);
+    RUN_TEST(test_pattern_steps_roundtrip);
+    RUN_TEST(test_legacy_on_off_pattern_migrates_to_steps);
+    RUN_TEST(test_pattern_steps_reject_bad_values);
     RUN_TEST(test_log_record_format);
     return UNITY_END();
 }
