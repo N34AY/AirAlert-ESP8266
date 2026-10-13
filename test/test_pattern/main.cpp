@@ -9,7 +9,7 @@ using namespace airalert;
 
 void test_single_pulse() {
     PatternScheduler p;
-    p.start({true, 1000, 0, 1}, 0);
+    p.start(Pattern::pulses(1000, 0, 1), 0);
     TEST_ASSERT_TRUE(p.tick(0));
     TEST_ASSERT_TRUE(p.tick(999));
     TEST_ASSERT_FALSE(p.tick(1000));
@@ -18,7 +18,7 @@ void test_single_pulse() {
 
 void test_multiple_repeats() {
     PatternScheduler p;
-    p.start({true, 100, 50, 3}, 0); // ON 0-100, OFF 100-150, ON 150-250 ...
+    p.start(Pattern::pulses(100, 50, 3), 0); // ON 0-100, OFF 100-150, ON 150-250 ...
     TEST_ASSERT_TRUE(p.tick(50));
     TEST_ASSERT_FALSE(p.tick(120));
     TEST_ASSERT_TRUE(p.tick(160));
@@ -30,7 +30,7 @@ void test_multiple_repeats() {
 
 void test_zero_off_time() {
     PatternScheduler p;
-    p.start({true, 100, 0, 3}, 0);
+    p.start(Pattern::pulses(100, 0, 3), 0);
     TEST_ASSERT_TRUE(p.tick(150));  // chains straight into next ON
     TEST_ASSERT_TRUE(p.tick(250));
     TEST_ASSERT_FALSE(p.tick(350)); // 3 repeats done
@@ -38,17 +38,17 @@ void test_zero_off_time() {
 
 void test_disabled_or_zero() {
     PatternScheduler p;
-    p.start({false, 1000, 0, 1}, 0);
+    p.start(Pattern::pulses(1000, 0, 1, false), 0);
     TEST_ASSERT_FALSE(p.tick(10));
-    p.start({true, 0, 0, 5}, 0);
+    p.start(Pattern::pulses(0, 0, 5), 0);
     TEST_ASSERT_FALSE(p.tick(10));
-    p.start({true, 100, 0, 0}, 0);
+    p.start(Pattern::pulses(100, 0, 0), 0);
     TEST_ASSERT_FALSE(p.tick(10));
 }
 
 void test_stop_mid_on() { // mute during ON
     PatternScheduler p;
-    p.start({true, 1000, 100, 2}, 0);
+    p.start(Pattern::pulses(1000, 100, 2), 0);
     TEST_ASSERT_TRUE(p.tick(500));
     p.stop();
     TEST_ASSERT_FALSE(p.tick(600));
@@ -58,10 +58,70 @@ void test_stop_mid_on() { // mute during ON
 void test_millis_wraparound() { // SPEC 137: mandatory
     PatternScheduler p;
     const uint32_t nearWrap = 0xFFFFFF00u; // 256 ms before wrap
-    p.start({true, 1000, 0, 1}, nearWrap);
+    p.start(Pattern::pulses(1000, 0, 1), nearWrap);
     TEST_ASSERT_TRUE(p.tick(0xFFFFFFFEu));
     TEST_ASSERT_TRUE(p.tick(500));          // wrapped, 756 ms elapsed
     TEST_ASSERT_FALSE(p.tick(nearWrap + 1000)); // 1000 ms elapsed (wrapped value)
+}
+
+void test_sequence_spin_up() { // long first ON for siren spin-up, then shorter
+    Pattern seq;
+    seq.add(true, 13000);
+    seq.add(false, 3000);
+    seq.add(true, 10000);
+    PatternScheduler p;
+    p.start(seq, 0);
+    TEST_ASSERT_TRUE(p.tick(12999));
+    TEST_ASSERT_FALSE(p.tick(13000));
+    TEST_ASSERT_FALSE(p.tick(15999));
+    TEST_ASSERT_TRUE(p.tick(16000));
+    TEST_ASSERT_TRUE(p.tick(25999));
+    TEST_ASSERT_FALSE(p.tick(26000));
+    TEST_ASSERT_FALSE(p.running());
+}
+
+void test_sequence_repeat_skips_trailing_pause() {
+    Pattern seq;
+    seq.add(false, 500); // leading pause plays every repetition
+    seq.add(true, 100);
+    seq.add(false, 400); // trailing pause of the LAST repetition is skipped
+    seq.repeat = 2;
+    PatternScheduler p;
+    p.start(seq, 0);
+    TEST_ASSERT_TRUE(p.running());
+    TEST_ASSERT_FALSE(p.tick(0));
+    TEST_ASSERT_TRUE(p.tick(500));
+    TEST_ASSERT_FALSE(p.tick(600));
+    TEST_ASSERT_FALSE(p.tick(1400)); // 2nd leading pause: 1000-1500
+    TEST_ASSERT_TRUE(p.tick(1500));
+    TEST_ASSERT_FALSE(p.tick(1600));
+    TEST_ASSERT_FALSE(p.running());
+}
+
+void test_sequence_coarse_tick_keeps_timeline() {
+    Pattern seq;
+    seq.add(true, 100);
+    seq.add(false, 100);
+    seq.add(true, 100);
+    seq.add(false, 100);
+    seq.add(true, 1000);
+    PatternScheduler p;
+    p.start(seq, 0);
+    TEST_ASSERT_TRUE(p.tick(450)); // jumped over three steps at once
+    TEST_ASSERT_TRUE(p.tick(1399));
+    TEST_ASSERT_FALSE(p.tick(1400));
+}
+
+void test_pattern_add_limits() {
+    Pattern seq;
+    TEST_ASSERT_TRUE(seq.add(true, 0)); // zero adds nothing
+    TEST_ASSERT_EQUAL(0, seq.count);
+    TEST_ASSERT_FALSE(seq.add(true, 60001));
+    TEST_ASSERT_FALSE(seq.add(true, 3)); // rounds to zero
+    TEST_ASSERT_TRUE(seq.add(true, 60000));
+    TEST_ASSERT_EQUAL_UINT32(60000, seq.stepMs(0));
+    for (uint8_t i = 1; i < Pattern::kMaxSteps; ++i) TEST_ASSERT_TRUE(seq.add(false, 10));
+    TEST_ASSERT_FALSE(seq.add(true, 10));
 }
 
 void test_relay_guard_limit() { // Invariant 2
@@ -189,6 +249,10 @@ int main() {
     RUN_TEST(test_disabled_or_zero);
     RUN_TEST(test_stop_mid_on);
     RUN_TEST(test_millis_wraparound);
+    RUN_TEST(test_sequence_spin_up);
+    RUN_TEST(test_sequence_repeat_skips_trailing_pause);
+    RUN_TEST(test_sequence_coarse_tick_keeps_timeline);
+    RUN_TEST(test_pattern_add_limits);
     RUN_TEST(test_relay_guard_limit);
     RUN_TEST(test_relay_guard_wraparound);
     RUN_TEST(test_relay_guard_async_trip_requires_request_release);

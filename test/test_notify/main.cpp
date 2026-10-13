@@ -100,7 +100,7 @@ void test_additional_location_policy_can_enable_signal() {
 void test_stale_data_suppresses_reminders_by_default() {
     NotificationEngine n;
     AlertProfile p = defaultProfile(AlertType::AirRaid);
-    p.reminder = Pattern{true, 500, 0, 1};
+    p.reminder = Pattern::pulses(500, 0, 1);
     p.reminderIntervalMs = 1000;
     n.setProfile(AlertType::AirRaid, p);
     n.onEngineEvent(started(AlertType::AirRaid), NotificationEngine::StartupMode::Silent, 0);
@@ -116,7 +116,7 @@ void test_stale_reminders_can_be_enabled() {
     cfg.remindersWhenStale = true;
     n.setConfig(cfg);
     AlertProfile p = defaultProfile(AlertType::AirRaid);
-    p.reminder = Pattern{true, 500, 0, 1};
+    p.reminder = Pattern::pulses(500, 0, 1);
     p.reminderIntervalMs = 1000;
     n.setProfile(AlertType::AirRaid, p);
     n.onEngineEvent(started(AlertType::AirRaid), NotificationEngine::StartupMode::Silent, 0);
@@ -137,7 +137,7 @@ void test_end_does_not_preempt_start() { // SPEC 47
 void test_start_preempts_reminder() { // SPEC 47
     NotificationEngine n;
     AlertProfile p = defaultProfile(AlertType::AirRaid);
-    p.reminder = Pattern{true, 10000, 0, 1}; // long reminder to preempt
+    p.reminder = Pattern::pulses(10000, 0, 1); // long reminder to preempt
     p.reminderIntervalMs = 1000;
     n.setProfile(AlertType::AirRaid, p);
     n.onEngineEvent(started(AlertType::AirRaid), NotificationEngine::StartupMode::Silent, 0);
@@ -153,7 +153,7 @@ void test_start_preempts_reminder() { // SPEC 47
 void test_reminder_interval() {
     NotificationEngine n;
     AlertProfile p = defaultProfile(AlertType::AirRaid);
-    p.reminder = Pattern{true, 500, 0, 1};
+    p.reminder = Pattern::pulses(500, 0, 1);
     p.reminderIntervalMs = 60000;
     n.setProfile(AlertType::AirRaid, p);
     n.onEngineEvent(started(AlertType::AirRaid), NotificationEngine::StartupMode::Silent, 0);
