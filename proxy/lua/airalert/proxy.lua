@@ -47,14 +47,29 @@ end
 
 local function count(key) dict:incr(key, 1, 0) end
 
+-- One line per upstream request (only worker 0 polls, so no interleaving).
+-- ponytail: blocking append of ~3 lines/min; logrotate with copytruncate
+local function trace(path, status, ms, bytes)
+    if not cfg.upstream_log then return end
+    local f = io.open(cfg.upstream_log, "a")
+    if not f then return end
+    f:write(ngx.localtime(), " ", path, " ", status, " ", ms, "ms ", bytes, "B\n")
+    f:close()
+end
+
 local function fetch(path)
     local used = dict:incr("budget", 1, 0, 60) -- fixed 60 s window
     if used > cfg.max_per_min then return nil, "budget" end
     count("up_req")
+    ngx.update_time()
+    local t0 = ngx.now()
     local res, err = http.new():request_uri(cfg.upstream .. path, {
         headers = { ["Authorization"] = cfg.key, ["User-Agent"] = "airalert-proxy/1" },
         ssl_verify = true,
     })
+    ngx.update_time()
+    trace(path, res and res.status or tostring(err), math.floor((ngx.now() - t0) * 1000),
+          res and #(res.body or "") or 0)
     if not res then return nil, err end
     -- 401 is usually the rate limit, not a bad key: just try next tick
     if res.status ~= 200 then return nil, "http " .. res.status end

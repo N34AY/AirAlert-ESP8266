@@ -22,7 +22,7 @@ sed -e 's#/opt/airalert-proxy/lua#/proxy/lua#' \
     -e 's#/etc/airalert/#/t/#g' \
     -e 's#listen 8080#listen 18080#' \
     -e 's#listen 8081#listen 18081#' \
-    -e '/regions_file/d' \
+    -e '/regions_file/d' -e 's#/var/log/nginx/airalert-upstream.log#/tmp/upstream.log#' \
     -e 's#access_log /var/log/nginx/airalert-webhook.log#access_log off#' \
     -e 's#rate=12r/m#rate=100r/s#' \
     -e 's#access_log /var/log/nginx/airalert-proxy.log#access_log off#' \
@@ -108,4 +108,5 @@ curl -s "$P/health" | grep -q '"fresh":false' || fail "health must say stale"
 ctl 'mode+ok'; sleep 2.5
 [ "$(code -H 'Authorization: dev-token-1' "$P/api/v3/alerts")" = 200 ] || fail "must recover after upstream is back"
 
+docker exec airalert-proxy-test sh -c "grep -c \" /api/v3/alerts 200 \" /tmp/upstream.log" >/dev/null || fail "upstream log"
 echo "e2e: OK  $(curl -s "$P/health")"
