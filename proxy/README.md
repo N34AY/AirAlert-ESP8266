@@ -45,6 +45,12 @@ openresty -t && systemctl reload openresty
 curl -s http://127.0.0.1:8080/health
 ```
 
+Живий приклад — `nginx/centric/`: nginx з `lua-nginx-module` (не OpenResty),
+де `lua_package_path` і `resolver` уже задані глобально. Тому http-частина
+лежить окремо в `conf.d/airalert.conf` без них, модулі — у
+`/usr/local/share/lua/5.1/airalert`, сервери — у
+`sites-available/airalert.akademik.local.conf` (пристрої `:8088`, вебхук `:8089`).
+
 `devices.txt` — по токену на рядок, коментар через `#`:
 
 ```
