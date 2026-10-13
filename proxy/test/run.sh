@@ -22,6 +22,7 @@ sed -e 's#/opt/airalert-proxy/lua#/proxy/lua#' \
     -e 's#/etc/airalert/#/t/#g' \
     -e 's#listen 8080#listen 18080#' \
     -e 's#listen 8081#listen 18081#' \
+    -e '/regions_file/d' \
     -e 's#access_log /var/log/nginx/airalert-webhook.log#access_log off#' \
     -e 's#rate=12r/m#rate=100r/s#' \
     -e 's#access_log /var/log/nginx/airalert-proxy.log#access_log off#' \

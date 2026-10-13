@@ -13,6 +13,7 @@ Outputs:
   src/alerts/LocationTable.h - PROGMEM matching table for firmware, INCLUDING
                                hromadas so a hromada alert resolves to its
                                raion/oblast (partial coverage, SPEC 18)
+  proxy/nginx/regions.json   - the tree as-is: the LAN proxy's catalog seed
 """
 import argparse
 import json
@@ -62,6 +63,8 @@ def main() -> None:
             sys.exit("set UKRAINEALARM_API_KEY or pass --from-file")
         tree = fetch_tree(key)
     locations = flatten(tree)
+    with open("proxy/nginx/regions.json", "w", encoding="utf-8") as f:
+        json.dump(tree, f, ensure_ascii=False, separators=(",", ":"))
 
     # validation (SPEC 144)
     uids = [l["uid"] for l in locations]

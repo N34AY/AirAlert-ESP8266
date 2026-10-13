@@ -13,6 +13,7 @@ local cfg = {
     upstream = "https://api.ukrainealarm.com",
     poll_every = 20,       -- s; ~3 accepted req/min per key (docs/RESEARCH.md)
     regions_every = 86400, -- s; catalog barely changes
+    regions_retry = 3600,  -- s between failed catalog attempts: /regions often 401s, alerts matter more
     stale_after = 180,     -- s without a good snapshot -> 503 to devices
     max_per_min = 3,       -- hard cap on upstream requests, shared by all calls
     max_skew = 300,        -- s; older (or future) webhooks are dropped, as ukrainealarm advises
@@ -33,6 +34,11 @@ function _M.configure(c)
     for line in read_file(cfg.tokens_file):gmatch("[^\r\n]+") do
         local t = line:match("^%s*([^#%s]+)") -- "token  # device name"
         if t then cfg.tokens[t] = true end
+    end
+    -- seed catalog (proxy/nginx/regions.json): filtering works before /regions ever answers
+    if cfg.regions_file then
+        cfg.regions_seed = read_file(cfg.regions_file)
+        assert(state.parents(cfg.regions_seed), "bad regions_file")
     end
     if cfg.webhook_pem_file then
         cfg.webhook_key = assert(pkey.new(read_file(cfg.webhook_pem_file)))
@@ -87,7 +93,9 @@ local function refresh()
     local now = ngx.now()
     -- catalog only once alerts are fresh: alerts are what keeps devices alive
     if now - (dict:get("regions_at") or 0) > cfg.regions_every
+            and now - (dict:get("regions_try") or 0) > cfg.regions_retry
             and now - (dict:get("alerts_at") or 0) < cfg.poll_every * 2 then
+        dict:set("regions_try", now)
         local body, err = fetch("/api/v3/regions")
         if body and state.parents(body) then
             dict:set("regions", body)
@@ -107,6 +115,10 @@ end
 
 function _M.start()
     if ngx.worker.id() ~= 0 then return end
+    if cfg.regions_seed and not dict:get("regions") then
+        dict:set("regions", cfg.regions_seed)
+        dict:set("regions_at", ngx.now()) -- next upstream try in regions_every
+    end
     local function tick(premature)
         if premature then return end
         local ok, err = pcall(refresh)
