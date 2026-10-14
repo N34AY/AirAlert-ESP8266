@@ -1,0 +1,138 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1220 720" font-family="Segoe UI, Arial, sans-serif">
+
+  <defs>
+    <style>
+      .board{fill:#1b2531;stroke:#0e141c;stroke-width:2}
+      .module{fill:#0f3057;stroke:#0a2140;stroke-width:2}
+      .pin{fill:#c9a227;stroke:#8a6d14;stroke-width:.6}
+      .pinu{fill:#e8590c;stroke:#8a3608;stroke-width:.8}
+      .pl{font-size:11px;fill:#cfd8e3}
+      .plu{font-size:11px;font-weight:bold;fill:#ffb454}
+      .ml{font-size:12px;fill:#e8eef5}
+      .mld{font-size:12px;fill:#8fa3bb}
+      .mlb{font-size:13px;font-weight:bold;fill:#ffffff}
+      .w5v{stroke:#d62828;stroke-width:3;fill:none}
+      .wgnd{stroke:#222831;stroke-width:3;fill:none}
+      .wd5{stroke:#1d6fb8;stroke-width:3;fill:none}
+      .wd6{stroke:#7b3fb8;stroke-width:3;fill:none}
+      .wled{stroke:#e8590c;stroke-width:3;fill:none}
+      .wbtn{stroke:#2b8a3e;stroke-width:3;fill:none}
+      .wload{stroke:#8a94a3;stroke-width:2.5;fill:none;stroke-dasharray:7 5}
+      .sym{stroke:#2b333f;stroke-width:2;fill:none}
+      .note{font-size:11.5px;fill:#4a5462}
+      .cap{font-size:12px;font-weight:bold;fill:#2b333f}
+      .warn{font-size:11.5px;font-weight:bold;fill:#b02a1a}
+    </style>
+  </defs>
+  <rect width="1220" height="720" fill="#f5f2ea"/>
+  <text x="30" y="34" font-size="19" font-weight="bold" fill="#1b2531">AirAlert — схема підключення: 2 реле (імпульси СТАРТ / СТОП)</text>
+  <text x="30" y="54" class="note">relay.single = false (за замовчуванням) · NodeMCU v3 LoLin · живлення з USB · логіка 3.3 В</text>
+  <rect x="620" y="112" width="260" height="100" class="module" rx="8"/>
+  <text x="636" y="134" class="mlb">KY-009 — індикатор тривоги</text>
+  <rect x="608" y="158" width="12" height="9" class="pinu"/><text x="636" y="166" class="ml">R — червоний</text>
+  <rect x="608" y="174" width="12" height="9" class="pin"/><text x="636" y="182" class="mld">G, B — не підключені</text>
+  <rect x="608" y="190" width="12" height="9" class="pinu"/><text x="636" y="198" class="ml">− — GND</text>
+  <text x="636" y="230" class="note">або LED + 330 Ом, або вхід реле з лампою</text>
+  <path class="wled" d="M312 162 L608 162"/>
+  <path class="wgnd" d="M312 306 L608 306"/>
+  <path class="wgnd" d="M580 306 L580 194 L608 194"/>
+  <circle cx="580" cy="306" r="4" fill="#222831"/>
+  <path class="wbtn" d="M312 186 L342 186 M382 186 L420 186 L420 306"/>
+  <circle cx="342" cy="186" r="3" fill="#2b333f"/><circle cx="382" cy="186" r="3" fill="#2b333f"/>
+  <path class="sym" d="M340 177 L384 177 M362.0 177 L362.0 169 M356.0 169 L368.0 169"/>
+  <text x="362.0" y="204" class="cap" text-anchor="middle">MUTE</text>
+  <circle cx="420" cy="306" r="4" fill="#222831"/>
+  <path class="wbtn" d="M312 378 L342 378 M382 378 L420 378 L420 474"/>
+  <path class="wgnd" d="M420 474 L312 474"/>
+  <circle cx="342" cy="378" r="3" fill="#2b333f"/><circle cx="382" cy="378" r="3" fill="#2b333f"/>
+  <path class="sym" d="M340 369 L384 369 M362.0 369 L362.0 361 M356.0 361 L368.0 361"/>
+  <text x="362.0" y="396" class="cap" text-anchor="middle">TEST</text>
+  <path class="w5v" d="M108 210 L76 210 L76 560 L560 560 L560 402 L608 402"/>
+  <rect x="120" y="80" width="180" height="440" class="board" rx="10"/>
+  <rect x="175" y="84" width="70" height="46" fill="#3a4656" rx="3"/>
+  <text x="210" y="112" font-size="10" fill="#aab6c4" text-anchor="middle">ESP-12E</text>
+  <rect x="185" y="486" width="50" height="28" fill="#5b6572" rx="2"/>
+  <text x="210" y="504" font-size="9" fill="#e8eef5" text-anchor="middle">USB</text>
+  <text x="210" y="146" font-size="12" fill="#e8eef5" text-anchor="middle" font-weight="bold">NodeMCU v3</text>
+  <rect x="108" y="158" width="12" height="9" class="pin"/><text x="128" y="166" class="pl">A0</text>
+  <rect x="108" y="182" width="12" height="9" class="pin"/><text x="128" y="190" class="pl">RSV</text>
+  <rect x="108" y="206" width="12" height="9" class="pinu"/><text x="128" y="214" class="plu">VU · 5V</text>
+  <rect x="108" y="230" width="12" height="9" class="pin"/><text x="128" y="238" class="pl">S3</text>
+  <rect x="108" y="254" width="12" height="9" class="pin"/><text x="128" y="262" class="pl">S2</text>
+  <rect x="108" y="278" width="12" height="9" class="pin"/><text x="128" y="286" class="pl">S1</text>
+  <rect x="108" y="302" width="12" height="9" class="pin"/><text x="128" y="310" class="pl">SC</text>
+  <rect x="108" y="326" width="12" height="9" class="pin"/><text x="128" y="334" class="pl">S0</text>
+  <rect x="108" y="350" width="12" height="9" class="pin"/><text x="128" y="358" class="pl">SK</text>
+  <rect x="108" y="374" width="12" height="9" class="pin"/><text x="128" y="382" class="pl">GND</text>
+  <rect x="108" y="398" width="12" height="9" class="pin"/><text x="128" y="406" class="pl">3V3</text>
+  <rect x="108" y="422" width="12" height="9" class="pin"/><text x="128" y="430" class="pl">EN</text>
+  <rect x="108" y="446" width="12" height="9" class="pin"/><text x="128" y="454" class="pl">RST</text>
+  <rect x="108" y="470" width="12" height="9" class="pin"/><text x="128" y="478" class="pl">GND</text>
+  <rect x="108" y="494" width="12" height="9" class="pin"/><text x="128" y="502" class="pl">VIN</text>
+  <rect x="300" y="158" width="12" height="9" class="pinu"/><text x="294" y="166" class="plu" text-anchor="end">D0</text>
+  <rect x="300" y="182" width="12" height="9" class="pinu"/><text x="294" y="190" class="plu" text-anchor="end">D1</text>
+  <rect x="300" y="206" width="12" height="9" class="pin"/><text x="294" y="214" class="pl" text-anchor="end">D2</text>
+  <text x="434" y="214" class="note">вільний</text>
+  <rect x="300" y="230" width="12" height="9" class="pin"/><text x="294" y="238" class="pl" text-anchor="end">D3</text>
+  <text x="434" y="238" class="note">⚠ boot</text>
+  <rect x="300" y="254" width="12" height="9" class="pin"/><text x="294" y="262" class="pl" text-anchor="end">D4</text>
+  <text x="434" y="262" class="note">LED плати (SYSTEM)</text>
+  <rect x="300" y="278" width="12" height="9" class="pin"/><text x="294" y="286" class="pl" text-anchor="end">3V3</text>
+  <rect x="300" y="302" width="12" height="9" class="pinu"/><text x="294" y="310" class="plu" text-anchor="end">GND</text>
+  <rect x="300" y="326" width="12" height="9" class="pinu"/><text x="294" y="334" class="plu" text-anchor="end">D5</text>
+  <rect x="300" y="350" width="12" height="9" class="pinu"/><text x="294" y="358" class="plu" text-anchor="end">D6</text>
+  <rect x="300" y="374" width="12" height="9" class="pinu"/><text x="294" y="382" class="plu" text-anchor="end">D7</text>
+  <rect x="300" y="398" width="12" height="9" class="pin"/><text x="294" y="406" class="pl" text-anchor="end">D8</text>
+  <text x="434" y="406" class="note">⚠ boot</text>
+  <rect x="300" y="422" width="12" height="9" class="pin"/><text x="294" y="430" class="pl" text-anchor="end">RX</text>
+  <rect x="300" y="446" width="12" height="9" class="pin"/><text x="294" y="454" class="pl" text-anchor="end">TX</text>
+  <rect x="300" y="470" width="12" height="9" class="pinu"/><text x="294" y="478" class="plu" text-anchor="end">GND</text>
+  <rect x="300" y="494" width="12" height="9" class="pin"/><text x="294" y="502" class="pl" text-anchor="end">3V3</text>
+  <rect x="620" y="270" width="260" height="150" class="module" rx="8"/>
+  <text x="636" y="290" class="mlb">Модуль реле 2-канальний, 5 В</text>
+  <rect x="608" y="302" width="12" height="9" class="pinu"/><text x="628" y="310" class="ml">GND</text>
+  <rect x="608" y="326" width="12" height="9" class="pinu"/><text x="628" y="334" class="ml">IN1</text>
+  <rect x="608" y="350" width="12" height="9" class="pinu"/><text x="628" y="358" class="ml">IN2</text>
+  <rect x="608" y="398" width="12" height="9" class="pinu"/><text x="628" y="406" class="ml">VCC</text>
+  <rect x="676" y="302" width="92" height="56" fill="#2255a4" rx="4"/>
+  <text x="722" y="328" font-size="10" fill="#cfe0f5" text-anchor="middle">SRD-05VDC</text>
+  <text x="722" y="344" font-size="11" font-weight="bold" fill="#ffffff" text-anchor="middle">K1 · СТАРТ</text>
+  <rect x="776" y="302" width="92" height="56" fill="#2255a4" rx="4"/>
+  <text x="822" y="328" font-size="10" fill="#cfe0f5" text-anchor="middle">SRD-05VDC</text>
+  <text x="822" y="344" font-size="11" font-weight="bold" fill="#ffffff" text-anchor="middle">K2 · СТОП</text>
+  <text x="676" y="406" class="mld">NC обох реле — вільні</text>
+  <path class="wd5" d="M312 330 L608 330"/>
+  <path class="wd6" d="M312 354 L608 354"/>
+  <rect x="880" y="291" width="14" height="10" class="pinu"/><text x="900" y="289" font-size="11" class="cap">COM1</text>
+  <rect x="880" y="313" width="14" height="10" class="pinu"/><text x="900" y="311" font-size="11" class="cap">NO1</text>
+  <rect x="880" y="347" width="14" height="10" class="pinu"/><text x="900" y="345" font-size="11" class="cap">COM2</text>
+  <rect x="880" y="369" width="14" height="10" class="pinu"/><text x="900" y="367" font-size="11" class="cap">NO2</text>
+  <rect x="990" y="250" width="200" height="160" fill="none" stroke="#8a94a3" stroke-width="2" stroke-dasharray="7 5" rx="8"/>
+  <text x="1004" y="272" class="cap">Пульт сирени</text>
+  <path class="sym" d="M990 296 L1030 296 M990 318 L1030 318 M990 352 L1030 352 M990 374 L1030 374"/>
+  <circle cx="1030" cy="296" r="3" fill="#2b333f"/><circle cx="1030" cy="318" r="3" fill="#2b333f"/>
+  <path class="sym" d="M1039 294 L1039 320 M1039 307.0 L1047 307.0 M1047 301.0 L1047 313.0"/>
+  <text x="1056" y="311.0" class="cap">СТАРТ</text>
+  <circle cx="1030" cy="352" r="3" fill="#2b333f"/><circle cx="1030" cy="374" r="3" fill="#2b333f"/>
+  <path class="sym" d="M1039 350 L1039 376 M1039 363.0 L1047 363.0 M1047 357.0 L1047 369.0"/>
+  <text x="1056" y="367.0" class="cap">СТОП</text>
+  <text x="1004" y="398" class="note">сирена самоутримується</text>
+  <path class="wload" d="M894 296 L990 296 M894 318 L990 318"/>
+  <path class="wload" d="M894 352 L990 352 M894 374 L990 374"/>
+  <text x="912" y="440" class="note">контакти реле — паралельно кнопкам пульта</text>
+  <text x="912" y="456" class="note">(«сухий контакт», імпульс 300 мс)</text>
+  <text x="912" y="476" class="warn">підключати ТІЛЬКИ після COMMISSIONING.md</text>
+  <g transform="translate(30,610)">
+    <line x1="0" y1="0" x2="34" y2="0" class="w5v"/><text x="42" y="4" class="cap">5 В (VU)</text>
+    <line x1="110" y1="0" x2="144" y2="0" class="wgnd"/><text x="152" y="4" class="cap">GND</text>
+    <line x1="202" y1="0" x2="236" y2="0" class="wd5"/><text x="244" y="4" class="cap">D5 → IN1 (СТАРТ)</text>
+    <line x1="374" y1="0" x2="408" y2="0" class="wd6"/><text x="416" y="4" class="cap">D6 → IN2 (СТОП)</text>
+    <line x1="540" y1="0" x2="574" y2="0" class="wled"/><text x="582" y="4" class="cap">D0 → індикатор</text>
+    <line x1="690" y1="0" x2="724" y2="0" class="wbtn"/><text x="732" y="4" class="cap">кнопки → GND</text>
+    <line x1="836" y1="0" x2="870" y2="0" class="wload"/><text x="878" y="4" class="cap">бік сирени</text>
+  </g>
+  <text x="30" y="640" class="note">Реле ніколи не замкнені одночасно. Safety-ліміт і кожен старт плати подають імпульс СТОП (сирена могла лишитися ввімкненою після reset).</text>
+  <text x="30" y="658" class="note">Модуль реле живиться 5 В від VU; входи IN керуються 3.3 В — потрібен модуль з опторозв'язкою / сумісний з 3.3 В. Порядок пінів на модулі може відрізнятися.</text>
+  <text x="30" y="676" class="note">Полярність входів (ACTIVE HIGH/LOW) — у Web UI → Реле; визначити до підключення сирени. Після цього — 10 кОм з IN на рівень «вимкнено».</text>
+  <text x="30" y="694" class="note">Кнопки MUTE/TEST — на GND, внутрішній pullup. D3, D4, D8 — boot-піни. Перетин дротів без точки — не з'єднання.</text>
+</svg>
